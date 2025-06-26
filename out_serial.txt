@@ -1,0 +1,1 @@
+injected energy is 100, system energy is 30.1266
