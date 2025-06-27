@@ -78,8 +78,9 @@ int initialize ( MPI_Comm *,
                  buffers_t * );
 
 
-int memory_release (plane_t   * );
+int memory_release (plane_t   *, buffers_t * );
 
+int memory_allocate (const int *, const vec2_t, buffers_t *, plane_t *);
 
 int output_energy_stat ( int      ,
                          plane_t *,
@@ -177,7 +178,6 @@ inline int update_plane ( const int      periodic,
     
     #pragma omp parallel for collapse(2)
     for (uint j = 1; j <= ysize; j++)
-        #pragma GCC unroll 4
         for ( uint i = 1; i <= xsize; i++)
             {
                 
@@ -263,7 +263,6 @@ inline int get_total_energy( plane_t *plane,
     //#pragma GCC unroll 4
 
     for ( int j = 1; j <= ysize; j++ )
-        #pragma GCC unroll 4
         for ( int i = 1; i <= xsize; i++ )
             totenergy += data[ IDX(i, j) ];
 

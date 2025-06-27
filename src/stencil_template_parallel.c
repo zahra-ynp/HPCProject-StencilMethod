@@ -8,7 +8,7 @@
  */
 
 
-#include "stencil.h"
+#include "stencil_template_parallel.h"
 
 
 
@@ -115,70 +115,52 @@ int main(int argc, char **argv)
       // 'full_sizex' is the total width of the allocated memory for one row, including the two ghost cells.
       const int full_sizex = sizex + 2;
 
-      
-      //[A] PREPARE BUFFERS for non-contiguous East/West data.
-      double send_buffer_east[sizey];
-      double send_buffer_west[sizey];
-      double recv_buffer_east[sizey];
-      double recv_buffer_west[sizey];
-
-      // This loop packs the data for the West and East boundaries into the send buffers.
+      // [A] Pack data into the pre-allocated SEND buffers from the 'buffers' array
       for (int i = 0; i < sizey; i++) {
-          // Copy the element from the first real column (column 1) into the west-bound buffer.
-          send_buffer_west[i] = current_plane[(i + 1) * full_sizex + 1];
-          // Copy the element from the last real column (column 'sizex') into the east-bound buffer.
-          send_buffer_east[i] = current_plane[(i + 1) * full_sizex + sizex];
+          buffers[SEND][WEST][i] = current_plane[(i + 1) * full_sizex + 1];
+          buffers[SEND][EAST][i] = current_plane[(i + 1) * full_sizex + sizex];
       }
-
-      /*
-      * [B] THE EVEN/ODD COMMUNICATION STRATEGY
-      * To avoid deadlock (where two processes wait for each other to send)
-      */
-
+     
+      // [B] Perform communication using the Even/Odd strategy
       MPI_Status status;
       const int my_rank = Rank;
 
-      // Check if the rank of this process is even.
-      if (my_rank % 2 == 0) {
-
-          // --- Send data to all four neighbors ---
+      if (my_rank % 2 == 0) { // EVEN RANKS: SEND FIRST
+          // Send North/South directly from the main plane's memory
+          MPI_Send(&current_plane[1 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD);
+          MPI_Send(&current_plane[sizey * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD);
+          // Send East/West from the pre-allocated buffers
+          MPI_Send(buffers[SEND][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD);
+          MPI_Send(buffers[SEND][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD);
           
-          MPI_Send(&current_plane[1 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD);
-          MPI_Send(&current_plane[sizey * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD);
-          MPI_Send(send_buffer_east, sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD);
-          MPI_Send(send_buffer_west, sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD);
-
-          // --- After all sends are posted, receive data from all four neighbors ---
-
+          // Receive North/South directly into the main plane's ghost cells
           MPI_Recv(&current_plane[(sizey + 1) * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD, &status);
           MPI_Recv(&current_plane[0 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD, &status);
-          MPI_Recv(recv_buffer_west, sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &status);
-          MPI_Recv(recv_buffer_east, sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &status);
+          // Receive East/West into the pre-allocated buffers
+          MPI_Recv(buffers[RECV][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &status);
+          MPI_Recv(buffers[RECV][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &status);
 
-      } else {
-
-          // --- Receive data from all four neighbors ---
+      } else { // ODD RANKS: RECEIVE FIRST
+          // Receive North/South directly into the main plane's ghost cells
           MPI_Recv(&current_plane[(sizey + 1) * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD, &status);
           MPI_Recv(&current_plane[0 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD, &status);
-          MPI_Recv(recv_buffer_west, sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &status);
-          MPI_Recv(recv_buffer_east, sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &status);
+          // Receive East/West into the pre-allocated buffers
+          MPI_Recv(buffers[RECV][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &status);
+          MPI_Recv(buffers[RECV][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &status);
 
-          // --- After all receives are complete, send data to all four neighbors ---
+          // Send North/South directly from the main plane's memory
           MPI_Send(&current_plane[1 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD);
           MPI_Send(&current_plane[sizey * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD);
-          MPI_Send(send_buffer_east, sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD);
-          MPI_Send(send_buffer_west, sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD);
+          // Send East/West from the pre-allocated buffers
+          MPI_Send(buffers[SEND][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD);
+          MPI_Send(buffers[SEND][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD);
       }
 
-      // [C] UNPACKING BUFFERS
-
+      // [C] Unpack data from the pre-allocated RECV buffers
       for (int i = 0; i < sizey; i++) {
-          // Copy from the west receive buffer into the west ghost column (column 0).
-          current_plane[(i + 1) * full_sizex + 0] = recv_buffer_west[i];
-          // Copy from the east receive buffer into the east ghost column (column sizex+1).
-          current_plane[(i + 1) * full_sizex + sizex + 1] = recv_buffer_east[i];
+          current_plane[(i + 1) * full_sizex + 0] = buffers[RECV][WEST][i];
+          current_plane[(i + 1) * full_sizex + sizex + 1] = buffers[RECV][EAST][i];
       }
-
       /*
       * --------------------------------------
       * HALO EXCHANGE END
@@ -217,7 +199,7 @@ int main(int argc, char **argv)
 
   output_energy_stat ( -1, &planes[!current], Niterations * Nsources*energy_per_source, Rank, &myCOMM_WORLD );
   
-  memory_release( buffers, planes );
+  memory_release(planes, buffers);
   
   
   MPI_Finalize();
@@ -510,8 +492,7 @@ int initialize ( MPI_Comm *Comm,
   // ··································································
   // allocae the needed memory
   //
-  ret = memory_allocate( plans, ... 
-  
+  ret = memory_allocate(neighbours, N, buffers, planes);  
 
   // ··································································
   // allocae the heat sources
@@ -655,34 +636,40 @@ int memory_allocate ( const int       *neighbours  ,
       
      */
 
-  if (planes_ptr == NULL )
-    // an invalid pointer has been passed
-    // manage the situation
-    ;
+  if (planes_ptr == NULL ){
+        // Print an error message to standard error.
+        fprintf(stderr, "ERROR in memory_allocate: received an invalid NULL pointer for planes.\n");
+        // Abort the entire MPI job, returning an error code of 1.
+        MPI_Abort(MPI_COMM_WORLD, 1);
+  }
 
 
-  if (buffers_ptr == NULL )
-    // an invalid pointer has been passed
-    // manage the situation
-    ;
-    
+  if (buffers_ptr == NULL ){
+        // Print an error message to standard error.
+        fprintf(stderr, "ERROR in memory_allocate: received an invalid NULL pointer for buffers.\n");
+        // Abort the entire MPI job, returning an error code of 1.
+        MPI_Abort(MPI_COMM_WORLD, 1);
+   } 
 
   // ··················································
   // allocate memory for data
+
+  const int sizex = planes_ptr[OLD].size[_x_];
+  const int sizey = planes_ptr[OLD].size[_y_];
   // we allocate the space needed for the plane plus a contour frame
   // that will contains data form neighbouring MPI tasks
-  unsigned int frame_size = (planes_ptr[OLD].size[_x_]+2) * (planes_ptr[OLD].size[_y_]+2);
+  unsigned int frame_size = (sizex + 2) * (sizey + 2);
 
   planes_ptr[OLD].data = (double*)malloc( frame_size * sizeof(double) );
-  if ( planes_ptr[OLD].data == NULL )
-    // manage the malloc fail
-    ;
+  if ( planes_ptr[OLD].data == NULL ){
+        MPI_Abort(MPI_COMM_WORLD, 1);
+  }
   memset ( planes_ptr[OLD].data, 0, frame_size * sizeof(double) );
 
   planes_ptr[NEW].data = (double*)malloc( frame_size * sizeof(double) );
-  if ( planes_ptr[NEW].data == NULL )
-    // manage the malloc fail
-    ;
+  if ( planes_ptr[NEW].data == NULL ){
+        MPI_Abort(MPI_COMM_WORLD, 1);
+  }
   memset ( planes_ptr[NEW].data, 0, frame_size * sizeof(double) );
 
 
@@ -703,8 +690,14 @@ int memory_allocate ( const int       *neighbours  ,
   // ··················································
   // allocate buffers
   //
-
-
+  if (neighbours[EAST] != MPI_PROC_NULL) {
+        buffers_ptr[SEND][EAST] = (double*)malloc(sizey * sizeof(double));
+        buffers_ptr[RECV][EAST] = (double*)malloc(sizey * sizeof(double));
+  }
+  if (neighbours[WEST] != MPI_PROC_NULL) {
+        buffers_ptr[SEND][WEST] = (double*)malloc(sizey * sizeof(double));
+        buffers_ptr[RECV][WEST] = (double*)malloc(sizey * sizeof(double));
+  }
 
 
   // ··················································
@@ -715,12 +708,9 @@ int memory_allocate ( const int       *neighbours  ,
 
 
 
- int memory_release ( plane_t   *planes,
-		      ....
-		     )
+int memory_release ( plane_t *planes, buffers_t *buffers_ptr )
   
 {
-
   if ( planes != NULL )
     {
       if ( planes[OLD].data != NULL )
@@ -730,6 +720,19 @@ int memory_allocate ( const int       *neighbours  ,
 	free (planes[NEW].data);
     }
 
+
+    if (buffers_ptr[SEND][EAST] != NULL) {
+        free(buffers_ptr[SEND][EAST]);
+    }
+    if (buffers_ptr[RECV][EAST] != NULL) {
+        free(buffers_ptr[RECV][EAST]);
+    }
+    if (buffers_ptr[SEND][WEST] != NULL) {
+        free(buffers_ptr[SEND][WEST]);
+    }
+    if (buffers_ptr[RECV][WEST] != NULL) {
+        free(buffers_ptr[RECV][WEST]);
+    }
       
   return 0;
 }
