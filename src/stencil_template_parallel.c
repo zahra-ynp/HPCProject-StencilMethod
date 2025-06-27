@@ -689,16 +689,18 @@ int memory_allocate ( const int       *neighbours  ,
 
   // ··················································
   // allocate buffers
-  //
   if (neighbours[EAST] != MPI_PROC_NULL) {
-        buffers_ptr[SEND][EAST] = (double*)malloc(sizey * sizeof(double));
-        buffers_ptr[RECV][EAST] = (double*)malloc(sizey * sizeof(double));
+        buffers_t[SEND][EAST] = (double*)malloc(sizey * sizeof(double));
+        if(buffers_t[SEND][EAST] == NULL) MPI_Abort(MPI_COMM_WORLD, 1); // Simplified abort on failure
+        buffers_t[RECV][EAST] = (double*)malloc(sizey * sizeof(double));
+        if(buffers_t[RECV][EAST] == NULL) MPI_Abort(MPI_COMM_WORLD, 1);
   }
   if (neighbours[WEST] != MPI_PROC_NULL) {
-        buffers_ptr[SEND][WEST] = (double*)malloc(sizey * sizeof(double));
-        buffers_ptr[RECV][WEST] = (double*)malloc(sizey * sizeof(double));
+        buffers_t[SEND][WEST] = (double*)malloc(sizey * sizeof(double));
+        if(buffers_t[SEND][WEST] == NULL) MPI_Abort(MPI_COMM_WORLD, 1);
+        buffers_t[RECV][WEST] = (double*)malloc(sizey * sizeof(double));
+        if(buffers_t[RECV][WEST] == NULL) MPI_Abort(MPI_COMM_WORLD, 1);
   }
-
 
   // ··················································
 
