@@ -112,14 +112,30 @@ inline int inject_energy ( const int      periodic,
                 {
                     if ( (N[_x_] == 1)  )
                         {
-                            // propagate the boundaries if needed
-                            // check the serial version
+                            // If a source is on the left edge (x=1)...
+                            if (x == 1) {
+                                // ...add energy to the right ghost cell.
+                                data[IDX(plane->size[_x_] + 1, y)] += energy;
+                            }
+                            // If a source is on the right edge...
+                            if (x == plane->size[_x_]) {
+                                // ...add energy to the left ghost cell.
+                                data[IDX(0, y)] += energy;
+                            }
                         }
                     
                     if ( (N[_y_] == 1) )
                         {
-                            // propagate the boundaries if needed
-                            // check the serial version
+                            // If a source is on the bottom edge (y=1)...
+                            if (y == 1) {
+                                // ...add energy to the top ghost cell.
+                                data[IDX(x, plane->size[_y_] + 1)] += energy;
+                            }
+                            // If a source is on the top edge...
+                            if (y == plane->size[_y_]) {
+                                // ...add energy to the bottom ghost cell.
+                                data[IDX(x, 0)] += energy;
+                            }
                         }
                 }                
         }
@@ -159,6 +175,7 @@ inline int update_plane ( const int      periodic,
     double * restrict old = oldplane->data;
     double * restrict new = newplane->data;
     
+    #pragma omp parallel for collapse(2)
     for (uint j = 1; j <= ysize; j++)
         for ( uint i = 1; i <= xsize; i++)
             {
@@ -173,28 +190,41 @@ inline int update_plane ( const int      periodic,
                 //
                 // HINT : check the serial version for some optimization
                 //
-                new[ IDX(i,j) ] =
-                    old[ IDX(i,j) ] / 2.0 + ( old[IDX(i-1, j)] + old[IDX(i+1, j)] +
-                                              old[IDX(i, j-1)] + old[IDX(i, j+1)] ) /4.0 / 2.0;
+
+                double alpha = 0.6;
+                double result = old[ IDX(i,j) ] * alpha;
+                double sum_i  = (old[IDX(i-1, j)] + old[IDX(i+1, j)]) / 4.0 * (1.0-alpha);
+                double sum_j  = (old[IDX(i, j-1)] + old[IDX(i, j+1)]) / 4.0 * (1.0-alpha);
+                result += (sum_i + sum_j );
+                
+                // Store the final calculated value in the 'new' grid.
+                new[ IDX(i,j) ] = result;
                 
             }
 
     if ( periodic )
+    {
+        // If the task grid is only 1 process wide...
+        if ( N[_x_] == 1 )
         {
-            if ( N[_x_] == 1 )
-                {
-                    // propagate the boundaries as needed
-                    // check the serial version
-                }
-  
-            if ( N[_y_] == 1 ) 
-                {
-                    // propagate the boundaries as needed
-                    // check the serial version
-                }
+            // ...propagate the East/West boundaries locally.
+            for ( int j = 1; j <= ysize; j++ ) {
+                new[ IDX(0, j) ] = new[ IDX(xsize, j) ];
+                new[ IDX(xsize + 1, j) ] = new[ IDX(1, j) ];
+            }
         }
+  
+        // If the task grid is only 1 process tall...
+        if ( N[_y_] == 1 ) 
+        {
+            // ...propagate the North/South boundaries locally.
+            for ( int i = 1; i <= xsize; i++ ) {
+                new[ IDX(i, 0) ] = new[ IDX(i, ysize) ];
+                new[ IDX(i, ysize + 1) ] = new[ IDX(i, 1) ];
+            }
+        }
+    }
 
-    
  #undef IDX
   return 0;
 }
