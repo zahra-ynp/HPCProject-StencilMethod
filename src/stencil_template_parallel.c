@@ -95,6 +95,92 @@ int main(int argc, char **argv)
       // [C] copy the haloes data
 
       /* --------------------------------------  */
+
+      /* --------------------------------------
+      * HALO EXCHANGE START (Send/Recv)
+      * ---------------------------------------  */
+
+      // Create local variable
+      // 'current_plane' is a pointer to the grid data for the current time step.
+      double* current_plane = planes[current].data;
+      // 'sizex' and 'sizey' are the dimensions of the actual data grid (without ghost cells).
+      const int sizex = planes[current].size[_x_];
+      const int sizey = planes[current].size[_y_];
+      // 'full_sizex' is the total width of the allocated memory for one row, including the two ghost cells.
+      const int full_sizex = sizex + 2;
+
+      
+      //[A] PREPARE BUFFERS for non-contiguous East/West data.
+      double send_buffer_east[sizey];
+      double send_buffer_west[sizey];
+      double recv_buffer_east[sizey];
+      double recv_buffer_west[sizey];
+
+      // This loop packs the data for the West and East boundaries into the send buffers.
+      for (int i = 0; i < sizey; i++) {
+          // Copy the element from the first real column (column 1) into the west-bound buffer.
+          send_buffer_west[i] = current_plane[(i + 1) * full_sizex + 1];
+          // Copy the element from the last real column (column 'sizex') into the east-bound buffer.
+          send_buffer_east[i] = current_plane[(i + 1) * full_sizex + sizex];
+      }
+
+      /*
+      * [B] THE EVEN/ODD COMMUNICATION STRATEGY
+      * To avoid deadlock (where two processes wait for each other to send)
+      */
+
+      MPI_Status status;
+      const int my_rank = Rank;
+
+      // Check if the rank of this process is even.
+      if (my_rank % 2 == 0) {
+
+          // --- Send data to all four neighbors ---
+          
+          MPI_Send(&current_plane[1 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD);
+          MPI_Send(&current_plane[sizey * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD);
+          MPI_Send(send_buffer_east, sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD);
+          MPI_Send(send_buffer_west, sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD);
+
+          // --- After all sends are posted, receive data from all four neighbors ---
+
+          MPI_Recv(&current_plane[(sizey + 1) * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD, &status);
+          MPI_Recv(&current_plane[0 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD, &status);
+          MPI_Recv(recv_buffer_west, sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &status);
+          MPI_Recv(recv_buffer_east, sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &status);
+
+      } else {
+
+          // --- Receive data from all four neighbors ---
+          MPI_Recv(&current_plane[(sizey + 1) * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD, &status);
+          MPI_Recv(&current_plane[0 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD, &status);
+          MPI_Recv(recv_buffer_west, sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &status);
+          MPI_Recv(recv_buffer_east, sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &status);
+
+          // --- After all receives are complete, send data to all four neighbors ---
+          MPI_Send(&current_plane[1 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD);
+          MPI_Send(&current_plane[sizey * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD);
+          MPI_Send(send_buffer_east, sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD);
+          MPI_Send(send_buffer_west, sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD);
+      }
+
+      // [C] UNPACKING BUFFERS
+
+      for (int i = 0; i < sizey; i++) {
+          // Copy from the west receive buffer into the west ghost column (column 0).
+          current_plane[(i + 1) * full_sizex + 0] = recv_buffer_west[i];
+          // Copy from the east receive buffer into the east ghost column (column sizex+1).
+          current_plane[(i + 1) * full_sizex + sizex + 1] = recv_buffer_east[i];
+      }
+
+      /*
+      * --------------------------------------
+      * HALO EXCHANGE END
+      * --------------------------------------
+      */
+
+
+
       /* update grid points */
       
       update_plane( periodic, N, &planes[current], &planes[!current] );
