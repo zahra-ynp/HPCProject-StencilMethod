@@ -71,17 +71,23 @@ int main(int argc, char **argv)
   
   
   int current = OLD;
-  double t1 = MPI_Wtime();   /* take wall-clock time */
+  double t_start, t_end;
+  double total_comm_time = 0.0;
+  double total_comp_time = 0.0;
   
+  t_start = MPI_Wtime();
+
   for (int iter = 0; iter < Niterations; ++iter)
     
     {
-      
+      double section_start_time;
+ 
       MPI_Request reqs[8];
       
       /* new energy from sources */
       inject_energy( periodic, Nsources_local, Sources_local, energy_per_source, &planes[current], N );
-
+      
+      section_start_time = MPI_Wtime();
 
       /* -------------------------------------- */
 
@@ -180,10 +186,15 @@ int main(int argc, char **argv)
       */
 
 
+      total_comm_time += (MPI_Wtime() - section_start_time);
+
+      section_start_time = MPI_Wtime();
 
       /* update grid points */
       
       update_plane( periodic, N, &planes[current], &planes[!current] );
+
+      total_comp_time += (MPI_Wtime() - section_start_time);
 
       /* output if needed */
       if ( output_energy_stat_perstep )
@@ -194,7 +205,15 @@ int main(int argc, char **argv)
       
     }
   
-  t1 = MPI_Wtime() - t1;
+  t_end = MPI_Wtime();
+  
+  if (Rank == 0) {
+      printf("\n--- Timing Results ---\n");
+      printf("Total loop time: %f seconds\n", t_end - t_start);
+      printf("Time spent in communication: %f seconds\n", total_comm_time);
+      printf("Time spent in computation: %f seconds\n", total_comp_time);
+      printf("----------------------\n\n");
+  }
 
   output_energy_stat ( -1, &planes[!current], Niterations * Nsources*energy_per_source, Rank, &myCOMM_WORLD );
   
