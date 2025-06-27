@@ -167,7 +167,7 @@ inline int update_plane ( const int      periodic,
     //       (i)  manually unroll the loop
     //       (ii) ask the compiler to do it
     // for instance
-    // #pragma GCC unroll 4
+    //#pragma GCC unroll 4
     //
     // HINT: in any case, this loop is a good candidate
     //       for openmp parallelization
@@ -177,6 +177,7 @@ inline int update_plane ( const int      periodic,
     
     #pragma omp parallel for collapse(2)
     for (uint j = 1; j <= ysize; j++)
+        #pragma GCC unroll 4
         for ( uint i = 1; i <= xsize; i++)
             {
                 
@@ -253,12 +254,16 @@ inline int get_total_energy( plane_t *plane,
     double totenergy = 0;    
    #endif
 
+   #pragma omp parallel for collapse(2) reduction(+:totenergy)
+
     // HINT: you may attempt to
     //       (i)  manually unroll the loop
     //       (ii) ask the compiler to do it
     // for instance
-    // #pragma GCC unroll 4
+    //#pragma GCC unroll 4
+
     for ( int j = 1; j <= ysize; j++ )
+        #pragma GCC unroll 4
         for ( int i = 1; i <= xsize; i++ )
             totenergy += data[ IDX(i, j) ];
 
