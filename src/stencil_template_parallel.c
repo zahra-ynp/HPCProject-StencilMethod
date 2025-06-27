@@ -492,7 +492,7 @@ int initialize ( MPI_Comm *Comm,
   // ··································································
   // allocae the needed memory
   //
-  ret = memory_allocate(neighbours, N, buffers, planes);  
+  ret = memory_allocate(neighbours, *N, buffers, planes);  
 
   // ··································································
   // allocae the heat sources
