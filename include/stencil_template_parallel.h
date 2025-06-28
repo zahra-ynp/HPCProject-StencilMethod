@@ -46,6 +46,8 @@ typedef struct {
 extern int g_n_omp_threads;
 extern double* g_per_thread_comp_time;
 
+// Thread-local timing variables for more accurate measurement
+extern __thread double thread_local_comp_time;
 
 extern int inject_energy ( const int      ,
                            const int      ,
@@ -179,9 +181,12 @@ inline int update_plane ( const int      periodic,
     //       for openmp parallelization
     double * restrict old = oldplane->data;
     double * restrict new = newplane->data;
+    
     #pragma omp parallel
     {
-        double start_time = omp_get_wtime();
+        int thread_id = omp_get_thread_num();
+        double thread_start_time = omp_get_wtime();
+        
         #pragma omp for collapse(2)
     	for (uint j = 1; j <= ysize; j++){
         	for ( uint i = 1; i <= xsize; i++)
@@ -208,9 +213,11 @@ inline int update_plane ( const int      periodic,
                 
             }	
 	}
-        double end_time = omp_get_wtime();
-        // Each thread adds its execution time to the global timing array.
-        g_per_thread_comp_time[omp_get_thread_num()] += (end_time - start_time);
+        
+        double thread_end_time = omp_get_wtime();
+        // Use atomic operation to avoid race conditions
+        #pragma omp atomic
+        g_per_thread_comp_time[thread_id] += (thread_end_time - thread_start_time);
     }
 
     if ( periodic )
@@ -265,25 +272,23 @@ inline int get_total_energy( plane_t *plane,
    #endif
    
    #pragma omp parallel
-  {
-
-    // HINT: you may attempt to
-    //       (i)  manually unroll the loop
-    //       (ii) ask the compiler to do it
-    // for instance
-    //#pragma GCC unroll 4
+   {
+       int thread_id = omp_get_thread_num();
+       double thread_start_time = omp_get_wtime();
+       
+       #pragma omp for collapse(2) reduction(+:totenergy)
+        for ( int j = 1; j <= ysize; j++ ){
+            for ( int i = 1; i <= xsize; i++ ){
+                totenergy += data[ IDX(i, j) ];
+            }
+       } 
+       
+       double thread_end_time = omp_get_wtime();
+       // Use atomic operation to avoid race conditions
+       #pragma omp atomic
+       g_per_thread_comp_time[thread_id] += (thread_end_time - thread_start_time);
+   }
    
-    double start_time = omp_get_wtime();
-    #pragma omp for collapse(2) reduction(+:totenergy)
-    for ( int j = 1; j <= ysize; j++ ){
-        for ( int i = 1; i <= xsize; i++ ){
-            totenergy += data[ IDX(i, j) ];
-        }
-   } 
-   double end_time = omp_get_wtime();
-   // Each thread adds its execution time to the same global timing array.
-    g_per_thread_comp_time[omp_get_thread_num()] += (end_time - start_time);
-    }    
    #undef IDX
 
     *energy = (double)totenergy;

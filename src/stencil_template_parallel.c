@@ -14,6 +14,7 @@
 // This is where the global variables are actually created.
 int g_n_omp_threads = 1;
 double* g_per_thread_comp_time = NULL;
+__thread double thread_local_comp_time = 0.0;
 
 // ------------------------------------------------------------------
 // ------------------------------------------------------------------
@@ -219,21 +220,36 @@ int main(int argc, char **argv)
       printf("Time spent in computation: %f seconds\n", total_comp_time);
       printf("----------------------\n\n");
 
+      // Calculate per-thread timing statistics
       double min_comp_time = 1e9, max_comp_time = 0.0, avg_comp_time = 0.0;
-      printf("\n--- Final Per-Thread Timing Analysis (includes overhead) ---\n");
+      double total_thread_time = 0.0;
+      
+      printf("\n--- Per-Thread Timing Analysis ---\n");
+      printf("Number of OpenMP threads: %d\n", g_n_omp_threads);
+      printf("Number of iterations: %d\n", Niterations);
+      printf("Total accumulated computation time: %f seconds\n", total_comp_time);
+      printf("\n");
+      
       for (int i = 0; i < g_n_omp_threads; i++) {
-            if (g_per_thread_comp_time[i] < min_comp_time) min_comp_time = g_per_thread_comp_time[i];
-            if (g_per_thread_comp_time[i] > max_comp_time) max_comp_time = g_per_thread_comp_time[i];
-            avg_comp_time += g_per_thread_comp_time[i];
-            printf("Thread %2d computation time: %f seconds\n", i, g_per_thread_comp_time[i]);
+            double thread_time = g_per_thread_comp_time[i];
+            total_thread_time += thread_time;
+            if (thread_time < min_comp_time) min_comp_time = thread_time;
+            if (thread_time > max_comp_time) max_comp_time = thread_time;
+            avg_comp_time += thread_time;
+            printf("Thread %2d computation time: %f seconds\n", i, thread_time);
       }
       avg_comp_time /= g_n_omp_threads;
-        
+      
+      printf("\n--- Thread Timing Statistics ---\n");
+      printf("Total thread time (sum of all threads): %f seconds\n", total_thread_time);
+      printf("Expected total thread time (comp_time * n_threads): %f seconds\n", total_comp_time * g_n_omp_threads);
+      printf("Timing overhead: %f seconds\n", total_thread_time - (total_comp_time * g_n_omp_threads));
       printf("----------------------------------------------------------\n");
       printf("Min thread computation time: %f seconds\n", min_comp_time);
       printf("Max thread computation time: %f seconds\n", max_comp_time);
       printf("Avg thread computation time: %f seconds\n", avg_comp_time);
       printf("Work Imbalance (Max - Min):  %f seconds\n", max_comp_time - min_comp_time);
+      printf("Load Balance (Min/Max ratio): %f%%\n", (min_comp_time / max_comp_time) * 100.0);
       printf("----------------------------------------------------------\n\n");
     }
 
