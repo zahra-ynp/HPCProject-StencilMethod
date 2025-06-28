@@ -175,12 +175,10 @@ inline int update_plane ( const int      periodic,
 
     double * restrict old = oldplane->data;
     double * restrict new = newplane->data;
-    
     #pragma omp parallel for collapse(2)
     for (uint j = 1; j <= ysize; j++)
         for ( uint i = 1; i <= xsize; i++)
-            {
-                
+            { 
                 // NOTE: (i-1,j), (i+1,j), (i,j-1) and (i,j+1) always exist even
                 //       if this patch is at some border without periodic conditions;
                 //       in that case it is assumed that the +-1 points are outside the
@@ -253,7 +251,7 @@ inline int get_total_energy( plane_t *plane,
    #else
     double totenergy = 0;    
    #endif
-
+   
    #pragma omp parallel for collapse(2) reduction(+:totenergy)
 
     // HINT: you may attempt to
@@ -265,7 +263,6 @@ inline int get_total_energy( plane_t *plane,
     for ( int j = 1; j <= ysize; j++ )
         for ( int i = 1; i <= xsize; i++ )
             totenergy += data[ IDX(i, j) ];
-
     
    #undef IDX
 
