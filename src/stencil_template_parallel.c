@@ -10,7 +10,10 @@
 
 #include "stencil_template_parallel.h"
 
-
+// --- GLOBAL VARIABLE DEFINITIONS ---
+// This is where the global variables are actually created.
+int g_n_omp_threads = 1;
+double* g_per_thread_comp_time = NULL;
 
 // ------------------------------------------------------------------
 // ------------------------------------------------------------------
@@ -53,7 +56,17 @@ int main(int argc, char **argv)
     MPI_Comm_dup (MPI_COMM_WORLD, &myCOMM_WORLD);
   }
   
-  
+    // --- SETUP FOR PER-THREAD TIMING ---
+    // Get the number of threads that will be used.
+    #pragma omp parallel
+    {
+        #pragma omp master
+        { g_n_omp_threads = omp_get_num_threads(); }
+    }
+    // Allocate memory for the global timing array and initialize to zero.
+    g_per_thread_comp_time = (double*)calloc(g_n_omp_threads, sizeof(double));
+
+
   /* argument checking and setting */
   int ret = initialize ( &myCOMM_WORLD, Rank, Ntasks, argc, argv, &S, &N, &periodic, &output_energy_stat_perstep,
 			 neighbours, &Niterations,
@@ -205,12 +218,29 @@ int main(int argc, char **argv)
       printf("Time spent in communication: %f seconds\n", total_comm_time);
       printf("Time spent in computation: %f seconds\n", total_comp_time);
       printf("----------------------\n\n");
-  }
+
+      double min_comp_time = 1e9, max_comp_time = 0.0, avg_comp_time = 0.0;
+      printf("\n--- Final Per-Thread Timing Analysis (includes overhead) ---\n");
+      for (int i = 0; i < g_n_omp_threads; i++) {
+            if (g_per_thread_comp_time[i] < min_comp_time) min_comp_time = g_per_thread_comp_time[i];
+            if (g_per_thread_comp_time[i] > max_comp_time) max_comp_time = g_per_thread_comp_time[i];
+            avg_comp_time += g_per_thread_comp_time[i];
+            printf("Thread %2d computation time: %f seconds\n", i, g_per_thread_comp_time[i]);
+      }
+      avg_comp_time /= g_n_omp_threads;
+        
+      printf("----------------------------------------------------------\n");
+      printf("Min thread computation time: %f seconds\n", min_comp_time);
+      printf("Max thread computation time: %f seconds\n", max_comp_time);
+      printf("Avg thread computation time: %f seconds\n", avg_comp_time);
+      printf("Work Imbalance (Max - Min):  %f seconds\n", max_comp_time - min_comp_time);
+      printf("----------------------------------------------------------\n\n");
+    }
 
   output_energy_stat ( -1, &planes[!current], Niterations * Nsources*energy_per_source, Rank, &myCOMM_WORLD );
   
   memory_release(planes, buffers);
-  
+  free(g_per_thread_comp_time);
   
   MPI_Finalize();
   return 0;

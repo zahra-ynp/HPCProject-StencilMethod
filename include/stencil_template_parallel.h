@@ -42,6 +42,11 @@ typedef struct {
 
 
 
+// --- GLOBAL VARIABLES FOR PER-THREAD TIMING ---
+extern int g_n_omp_threads;
+extern double* g_per_thread_comp_time;
+
+
 extern int inject_energy ( const int      ,
                            const int      ,
 			   const vec2_t  *,
@@ -172,13 +177,15 @@ inline int update_plane ( const int      periodic,
     //
     // HINT: in any case, this loop is a good candidate
     //       for openmp parallelization
-
     double * restrict old = oldplane->data;
     double * restrict new = newplane->data;
-    #pragma omp parallel for collapse(2)
-    for (uint j = 1; j <= ysize; j++)
-        for ( uint i = 1; i <= xsize; i++)
-            { 
+    #pragma omp parallel
+    {
+        double start_time = omp_get_wtime();
+        #pragma omp for collapse(2)
+    	for (uint j = 1; j <= ysize; j++){
+        	for ( uint i = 1; i <= xsize; i++)
+       		{ 
                 // NOTE: (i-1,j), (i+1,j), (i,j-1) and (i,j+1) always exist even
                 //       if this patch is at some border without periodic conditions;
                 //       in that case it is assumed that the +-1 points are outside the
@@ -199,7 +206,12 @@ inline int update_plane ( const int      periodic,
                 // Store the final calculated value in the 'new' grid.
                 new[ IDX(i,j) ] = result;
                 
-            }
+            }	
+	}
+        double end_time = omp_get_wtime();
+        // Each thread adds its execution time to the global timing array.
+        g_per_thread_comp_time[omp_get_thread_num()] += (end_time - start_time);
+    }
 
     if ( periodic )
     {
@@ -243,7 +255,7 @@ inline int get_total_energy( plane_t *plane,
     const int register fsize = xsize+2;
 
     double * restrict data = plane->data;
-    
+
    #define IDX( i, j ) ( (j)*fsize + (i) )
 
    #if defined(LONG_ACCURACY)    
@@ -252,18 +264,26 @@ inline int get_total_energy( plane_t *plane,
     double totenergy = 0;    
    #endif
    
-   #pragma omp parallel for collapse(2) reduction(+:totenergy)
+   #pragma omp parallel
+  {
 
     // HINT: you may attempt to
     //       (i)  manually unroll the loop
     //       (ii) ask the compiler to do it
     // for instance
     //#pragma GCC unroll 4
-
-    for ( int j = 1; j <= ysize; j++ )
-        for ( int i = 1; i <= xsize; i++ )
+   
+    double start_time = omp_get_wtime();
+    #pragma omp for collapse(2) reduction(+:totenergy)
+    for ( int j = 1; j <= ysize; j++ ){
+        for ( int i = 1; i <= xsize; i++ ){
             totenergy += data[ IDX(i, j) ];
-    
+        }
+   } 
+   double end_time = omp_get_wtime();
+   // Each thread adds its execution time to the same global timing array.
+    g_per_thread_comp_time[omp_get_thread_num()] += (end_time - start_time);
+    }    
    #undef IDX
 
     *energy = (double)totenergy;
