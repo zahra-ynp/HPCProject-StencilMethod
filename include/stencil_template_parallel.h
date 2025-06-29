@@ -49,6 +49,7 @@ extern double* g_per_thread_comp_time;
 // Thread-local timing variables for more accurate measurement
 extern __thread double thread_local_comp_time;
 
+// Function declarations
 extern int inject_energy ( const int      ,
                            const int      ,
 			   const vec2_t  *,
@@ -94,6 +95,17 @@ int output_energy_stat ( int      ,
                          double   ,
                          int      ,
                          MPI_Comm *);
+
+// Additional function declarations that were missing
+uint simple_factorization( uint, int *, uint ** );
+
+int initialize_sources( int       ,
+			int       ,
+			MPI_Comm  *,
+			uint      [2],
+			int       ,
+			int      *,
+			vec2_t  ** );
 
 
 
