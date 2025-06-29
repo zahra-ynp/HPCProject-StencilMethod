@@ -1,10 +1,9 @@
 #!/bin/bash
-# === User-configurable node counts ===
-NODE_COUNTS=(1 2 4 8)
+NODE_COUNTS=(1 2 4)
 NTASKS_PER_NODE=4
 THREADS_PER_TASK=28
 
-#SBATCH --nodes=1                   # This will be overridden in the loop
+#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=28
 #SBATCH --mem=0
@@ -28,7 +27,7 @@ export OMP_PROC_BIND=spread
 
 mkdir -p mpi_scaling_results
 
-# CSV header (only write if file doesn't exist)
+# CSV header
 RESULTS_FILE=mpi_scaling_results/mpi_strong_scaling.csv
 if [ ! -f "$RESULTS_FILE" ]; then
     echo "nodes,mpi_tasks,threads_per_task,total_threads,wall_time,min_comp_time,max_comp_time,avg_comp_time,min_comm_time,max_comm_time,avg_comm_time" > $RESULTS_FILE
@@ -42,7 +41,7 @@ for nodes in "${NODE_COUNTS[@]}"; do
     OUT_FILE="mpi_scaling_results/out_nodes_${nodes}.txt"
 
     echo "Running with $nodes nodes ($mpi_tasks MPI tasks, $THREADS_PER_TASK threads/task)..."
-    mpirun -np $((NTASKS_PER_NODE * nodes)) ./${EXEC} ${ARGS} > ${OUT_FILE} 2> ${ERR_FILE}
+    mpirun -np $((NTASKS_PER_NODE * nodes)) ./${EXEC} ${ARGS} > ${OUT_FILE}
 
     min_comp=$(grep "Min computation time" "$OUT_FILE" | awk '{print $4}')
     max_comp=$(grep "Max computation time" "$OUT_FILE" | awk '{print $4}')
