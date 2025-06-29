@@ -1,15 +1,11 @@
 #!/bin/bash
-NODE_COUNTS=(1 2 4)
-NTASKS_PER_NODE=4
-THREADS_PER_TASK=28
-
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=28
 #SBATCH --mem=0
 #SBATCH --partition=dcgp_usr_prod
 #SBATCH --account=uTS25_Tornator_0
-#SBATCH --time=01:00:00
+#SBATCH --time=00:30:00
 #SBATCH --job-name=mpi_strong_scaling
 #SBATCH --output=mpi_scaling_results/log_%j.out
 #SBATCH --error=mpi_scaling_results/err_%j.err
@@ -17,42 +13,34 @@ THREADS_PER_TASK=28
 # === Setup ===
 module load gcc/12.2.0
 module load openmpi/4.1.6--gcc--12.2.0
-
 EXEC="stencil_hybrid"
 ARGS="-x 1000 -y 1000 -n 1000"
 
-export OMP_NUM_THREADS=$THREADS_PER_TASK
+export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 export OMP_PLACES=cores
 export OMP_PROC_BIND=spread
 
-mkdir -p mpi_scaling_results
-
-# CSV header
-RESULTS_FILE=mpi_scaling_results/mpi_strong_scaling.csv
-if [ ! -f "$RESULTS_FILE" ]; then
-    echo "nodes,mpi_tasks,threads_per_task,total_threads,wall_time,min_comp_time,max_comp_time,avg_comp_time,min_comm_time,max_comm_time,avg_comm_time" > $RESULTS_FILE
-fi
-
 echo "Starting MPI+OpenMP strong scaling tests..."
 
-for nodes in "${NODE_COUNTS[@]}"; do
-    mpi_tasks=$((NTASKS_PER_NODE * nodes))
-    total_threads=$((mpi_tasks * THREADS_PER_TASK))
-    OUT_FILE="mpi_scaling_results/out_nodes_${nodes}.txt"
+OUT_FILE="mpi_scaling_results/out_nodes_${SLURM_JOB_NUM_NODES}.txt"
 
-    echo "Running with $nodes nodes ($mpi_tasks MPI tasks, $THREADS_PER_TASK threads/task)..."
-    srun --nodes=$nodes --ntasks-per-node=$NTASKS_PER_NODE --cpus-per-task=$THREADS_PER_TASK \
+echo "Running with ${SLURM_JOB_NUM_NODES} nodes (${SLURM_NTASKS_PER_NODE} MPI tasks, ${SLURM_CPUS_PER_TASK} threads/task)..."
+
+srun --nodes=${SLURM_JOB_NUM_NODES} --ntasks-per-node=${SLURM_NTASKS_PER_NODE} --cpus-per-task=${SLURM_CPUS_PER_TASK} \
     ./${EXEC} ${ARGS} > "${OUT_FILE}"
 
-    min_comp=$(grep "Min computation time" "$OUT_FILE" | awk '{print $4}')
-    max_comp=$(grep "Max computation time" "$OUT_FILE" | awk '{print $4}')
-    avg_comp=$(grep "Avg computation time" "$OUT_FILE" | awk '{print $4}')
-    min_comm=$(grep "Min communication time" "$OUT_FILE" | awk '{print $4}')
-    max_comm=$(grep "Max communication time" "$OUT_FILE" | awk '{print $4}')
-    avg_comm=$(grep "Avg communication time" "$OUT_FILE" | awk '{print $4}')
+min_comp=$(grep "Min computation time" "$OUT_FILE" | awk '{print $4}')
+max_comp=$(grep "Max computation time" "$OUT_FILE" | awk '{print $4}')
+avg_comp=$(grep "Avg computation time" "$OUT_FILE" | awk '{print $4}')
+min_comm=$(grep "Min communication time" "$OUT_FILE" | awk '{print $4}')
+max_comm=$(grep "Max communication time" "$OUT_FILE" | awk '{print $4}')
+avg_comm=$(grep "Avg communication time" "$OUT_FILE" | awk '{print $4}')
 
-    echo "$nodes,$mpi_tasks,$THREADS_PER_TASK,$total_threads,$wall_time,$min_comp,$max_comp,$avg_comp,$min_comm,$max_comm,$avg_comm" >> $RESULTS_FILE
+RESULTS_FILE=mpi_scaling_results/mpi_strong_scaling.csv
+if [ ! -f "$RESULTS_FILE" ]; then
+    echo "nodes,mpi_tasks,threads_per_task,min_comp,max_comp,avg_comp,min_comm,max_comm,avg_comm" > $RESULTS_FILE
+fi
 
-done
+echo "${SLURM_JOB_NUM_NODES},${SLURM_NTASKS_PER_NODE},${SLURM_CPUS_PER_TASK},$min_comp,$max_comp,$avg_comp,$min_comm,$max_comm,$avg_comm" >> $RESULTS_FILE
 
-echo "All runs completed." 
+echo "All runs completed."
