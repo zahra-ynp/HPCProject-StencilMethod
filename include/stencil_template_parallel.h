@@ -179,7 +179,7 @@ inline int update_plane ( const int      periodic,
         int thread_id = omp_get_thread_num();
         double t0 = omp_get_wtime();
         
-        #pragma omp for collapse(2) schedule(dynamic, 1)
+        #pragma omp for collapse(2) schedule(dynamic, 100)
         for (uint j = 1; j <= ysize; j++){
             for (uint i = 1; i <= xsize; i++){
                 double alpha = 0.6;
@@ -245,7 +245,7 @@ inline int get_total_energy( plane_t *plane,
        int thread_id = omp_get_thread_num();
        double t0 = omp_get_wtime();
        
-       #pragma omp for collapse(2) reduction(+:totenergy) schedule(dynamic, 1)
+       #pragma omp for collapse(2) reduction(+:totenergy) schedule(dynamic, 100)
         for ( int j = 1; j <= ysize; j++ ){
             for ( int i = 1; i <= xsize; i++ ){
                 totenergy += data[ IDX(i, j) ];
