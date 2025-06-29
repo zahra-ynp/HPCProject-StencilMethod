@@ -105,6 +105,15 @@ int main(int argc, char **argv)
 
       /* -------------------------------------- */
 
+      // Create local variable
+      // 'current_plane' is a pointer to the grid data for the current time step.
+      double* current_plane = planes[current].data;
+      // 'sizex' and 'sizey' are the dimensions of the actual data grid (without ghost cells).
+      const int sizex = planes[current].size[_x_];
+      const int sizey = planes[current].size[_y_];
+      // 'full_sizex' is the total width of the allocated memory for one row, including the two ghost cells.
+      const int full_sizex = sizex + 2;
+
       // [A] Pack data into the pre-allocated SEND buffers
       if (neighbours[WEST] != MPI_PROC_NULL) {
           for (int i = 0; i < sizey; i++) {
@@ -129,15 +138,6 @@ int main(int argc, char **argv)
       /* --------------------------------------
       * HALO EXCHANGE START (Send/Recv)
       * ---------------------------------------  */
-
-      // Create local variable
-      // 'current_plane' is a pointer to the grid data for the current time step.
-      double* current_plane = planes[current].data;
-      // 'sizex' and 'sizey' are the dimensions of the actual data grid (without ghost cells).
-      const int sizex = planes[current].size[_x_];
-      const int sizey = planes[current].size[_y_];
-      // 'full_sizex' is the total width of the allocated memory for one row, including the two ghost cells.
-      const int full_sizex = sizex + 2;
 
       // --- BLOCKING VERSION (commented out, now pairwise) ---
       /*
