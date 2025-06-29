@@ -253,6 +253,18 @@ int main(int argc, char **argv)
       printf("----------------------------------------------------------\n\n");
     }
 
+    double min_comm_time, max_comm_time, sum_comm_time, avg_comm_time;
+    MPI_Reduce(&total_comm_time, &min_comm_time, 1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&total_comm_time, &max_comm_time, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&total_comm_time, &sum_comm_time, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+if (Rank == 0) {
+    avg_comm_time = sum_comm_time / Ntasks;
+    printf("Min communication time: %f seconds\n", min_comm_time);
+    printf("Max communication time: %f seconds\n", max_comm_time);
+    printf("Avg communication time: %f seconds\n", avg_comm_time);
+}
+
   output_energy_stat ( -1, &planes[!current], Niterations * Nsources*energy_per_source, Rank, &myCOMM_WORLD );
   
   memory_release(planes, buffers);
