@@ -147,125 +147,88 @@ int main(int argc, char **argv)
       const int my_rank = Rank;
 
       if (my_rank % 2 == 0) { // EVEN RANKS: SEND FIRST
-          // Send to neighbors only if they exist
           if (neighbours[NORTH] != MPI_PROC_NULL) {
-              int err = MPI_Send(&current_plane[1 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD);
-              if (err != MPI_SUCCESS) {
-                  fprintf(stderr, "ERROR: MPI_Send failed on rank %d to NORTH\n", my_rank);
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-              }
+              printf("Rank %d: About to send to NORTH\n", my_rank); fflush(stdout);
+              MPI_Send(&current_plane[1 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD);
+              printf("Rank %d: Sent to NORTH\n", my_rank); fflush(stdout);
           }
           if (neighbours[SOUTH] != MPI_PROC_NULL) {
-              int err = MPI_Send(&current_plane[sizey * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD);
-              if (err != MPI_SUCCESS) {
-                  fprintf(stderr, "ERROR: MPI_Send failed on rank %d to SOUTH\n", my_rank);
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-              }
+              printf("Rank %d: About to send to SOUTH\n", my_rank); fflush(stdout);
+              MPI_Send(&current_plane[sizey * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD);
+              printf("Rank %d: Sent to SOUTH\n", my_rank); fflush(stdout);
           }
           if (neighbours[EAST] != MPI_PROC_NULL) {
-              int err = MPI_Send(buffers[SEND][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD);
-              if (err != MPI_SUCCESS) {
-                  fprintf(stderr, "ERROR: MPI_Send failed on rank %d to EAST\n", my_rank);
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-              }
+              printf("Rank %d: About to send to EAST\n", my_rank); fflush(stdout);
+              MPI_Send(buffers[SEND][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD);
+              printf("Rank %d: Sent to EAST\n", my_rank); fflush(stdout);
           }
           if (neighbours[WEST] != MPI_PROC_NULL) {
-              int err = MPI_Send(buffers[SEND][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD);
-              if (err != MPI_SUCCESS) {
-                  fprintf(stderr, "ERROR: MPI_Send failed on rank %d to WEST\n", my_rank);
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-              }
-          }
-          
-          // Receive from neighbors only if they exist
-          if (neighbours[SOUTH] != MPI_PROC_NULL) {
-              int err = MPI_Recv(&current_plane[(sizey + 1) * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD, &status);
-              if (err != MPI_SUCCESS) {
-                  fprintf(stderr, "ERROR: MPI_Recv failed on rank %d from SOUTH\n", my_rank);
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-              }
-          }
-          if (neighbours[NORTH] != MPI_PROC_NULL) {
-              int err = MPI_Recv(&current_plane[0 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD, &status);
-              if (err != MPI_SUCCESS) {
-                  fprintf(stderr, "ERROR: MPI_Recv failed on rank %d from NORTH\n", my_rank);
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-              }
-          }
-          if (neighbours[WEST] != MPI_PROC_NULL) {
-              int err = MPI_Recv(buffers[RECV][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &status);
-              if (err != MPI_SUCCESS) {
-                  fprintf(stderr, "ERROR: MPI_Recv failed on rank %d from WEST\n", my_rank);
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-              }
-          }
-          if (neighbours[EAST] != MPI_PROC_NULL) {
-              int err = MPI_Recv(buffers[RECV][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &status);
-              if (err != MPI_SUCCESS) {
-                  fprintf(stderr, "ERROR: MPI_Recv failed on rank %d from EAST\n", my_rank);
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-              }
+              printf("Rank %d: About to send to WEST\n", my_rank); fflush(stdout);
+              MPI_Send(buffers[SEND][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD);
+              printf("Rank %d: Sent to WEST\n", my_rank); fflush(stdout);
           }
 
+          if (neighbours[SOUTH] != MPI_PROC_NULL) {
+              printf("Rank %d: About to recv from SOUTH\n", my_rank); fflush(stdout);
+              MPI_Recv(&current_plane[(sizey + 1) * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD, &status);
+              printf("Rank %d: Recv from SOUTH\n", my_rank); fflush(stdout);
+          }
+          if (neighbours[NORTH] != MPI_PROC_NULL) {
+              printf("Rank %d: About to recv from NORTH\n", my_rank); fflush(stdout);
+              MPI_Recv(&current_plane[0 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD, &status);
+              printf("Rank %d: Recv from NORTH\n", my_rank); fflush(stdout);
+          }
+          if (neighbours[WEST] != MPI_PROC_NULL) {
+              printf("Rank %d: About to recv from WEST\n", my_rank); fflush(stdout);
+              MPI_Recv(buffers[RECV][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &status);
+              printf("Rank %d: Recv from WEST\n", my_rank); fflush(stdout);
+          }
+          if (neighbours[EAST] != MPI_PROC_NULL) {
+              printf("Rank %d: About to recv from EAST\n", my_rank); fflush(stdout);
+              MPI_Recv(buffers[RECV][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &status);
+              printf("Rank %d: Recv from EAST\n", my_rank); fflush(stdout);
+          }
       } else { // ODD RANKS: RECEIVE FIRST
-          // Receive from neighbors only if they exist
           if (neighbours[SOUTH] != MPI_PROC_NULL) {
-              int err = MPI_Recv(&current_plane[(sizey + 1) * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD, &status);
-              if (err != MPI_SUCCESS) {
-                  fprintf(stderr, "ERROR: MPI_Recv failed on rank %d from SOUTH\n", my_rank);
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-              }
+              printf("Rank %d: About to recv from SOUTH\n", my_rank); fflush(stdout);
+              MPI_Recv(&current_plane[(sizey + 1) * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD, &status);
+              printf("Rank %d: Recv from SOUTH\n", my_rank); fflush(stdout);
           }
           if (neighbours[NORTH] != MPI_PROC_NULL) {
-              int err = MPI_Recv(&current_plane[0 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD, &status);
-              if (err != MPI_SUCCESS) {
-                  fprintf(stderr, "ERROR: MPI_Recv failed on rank %d from NORTH\n", my_rank);
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-              }
+              printf("Rank %d: About to recv from NORTH\n", my_rank); fflush(stdout);
+              MPI_Recv(&current_plane[0 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD, &status);
+              printf("Rank %d: Recv from NORTH\n", my_rank); fflush(stdout);
           }
           if (neighbours[WEST] != MPI_PROC_NULL) {
-              int err = MPI_Recv(buffers[RECV][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &status);
-              if (err != MPI_SUCCESS) {
-                  fprintf(stderr, "ERROR: MPI_Recv failed on rank %d from WEST\n", my_rank);
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-              }
+              printf("Rank %d: About to recv from WEST\n", my_rank); fflush(stdout);
+              MPI_Recv(buffers[RECV][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &status);
+              printf("Rank %d: Recv from WEST\n", my_rank); fflush(stdout);
           }
           if (neighbours[EAST] != MPI_PROC_NULL) {
-              int err = MPI_Recv(buffers[RECV][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &status);
-              if (err != MPI_SUCCESS) {
-                  fprintf(stderr, "ERROR: MPI_Recv failed on rank %d from EAST\n", my_rank);
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-              }
+              printf("Rank %d: About to recv from EAST\n", my_rank); fflush(stdout);
+              MPI_Recv(buffers[RECV][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &status);
+              printf("Rank %d: Recv from EAST\n", my_rank); fflush(stdout);
           }
 
-          // Send to neighbors only if they exist
           if (neighbours[NORTH] != MPI_PROC_NULL) {
-              int err = MPI_Send(&current_plane[1 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD);
-              if (err != MPI_SUCCESS) {
-                  fprintf(stderr, "ERROR: MPI_Send failed on rank %d to NORTH\n", my_rank);
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-              }
+              printf("Rank %d: About to send to NORTH\n", my_rank); fflush(stdout);
+              MPI_Send(&current_plane[1 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD);
+              printf("Rank %d: Sent to NORTH\n", my_rank); fflush(stdout);
           }
           if (neighbours[SOUTH] != MPI_PROC_NULL) {
-              int err = MPI_Send(&current_plane[sizey * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD);
-              if (err != MPI_SUCCESS) {
-                  fprintf(stderr, "ERROR: MPI_Send failed on rank %d to SOUTH\n", my_rank);
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-              }
+              printf("Rank %d: About to send to SOUTH\n", my_rank); fflush(stdout);
+              MPI_Send(&current_plane[sizey * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD);
+              printf("Rank %d: Sent to SOUTH\n", my_rank); fflush(stdout);
           }
           if (neighbours[EAST] != MPI_PROC_NULL) {
-              int err = MPI_Send(buffers[SEND][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD);
-              if (err != MPI_SUCCESS) {
-                  fprintf(stderr, "ERROR: MPI_Send failed on rank %d to EAST\n", my_rank);
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-              }
+              printf("Rank %d: About to send to EAST\n", my_rank); fflush(stdout);
+              MPI_Send(buffers[SEND][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD);
+              printf("Rank %d: Sent to EAST\n", my_rank); fflush(stdout);
           }
           if (neighbours[WEST] != MPI_PROC_NULL) {
-              int err = MPI_Send(buffers[SEND][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD);
-              if (err != MPI_SUCCESS) {
-                  fprintf(stderr, "ERROR: MPI_Send failed on rank %d to WEST\n", my_rank);
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-              }
+              printf("Rank %d: About to send to WEST\n", my_rank); fflush(stdout);
+              MPI_Send(buffers[SEND][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD);
+              printf("Rank %d: Sent to WEST\n", my_rank); fflush(stdout);
           }
       }
 
