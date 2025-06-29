@@ -216,7 +216,7 @@ inline int update_plane ( const int      periodic,
 
             }	
 	}
-        ouble t1 = omp_get_wtime();
+        double t1 = omp_get_wtime();
         local_time += (t1 - t0);
         // Use atomic operation to avoid race conditions
         #pragma omp atomic
