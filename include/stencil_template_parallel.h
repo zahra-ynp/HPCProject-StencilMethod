@@ -171,6 +171,14 @@ inline int update_plane ( const int      periodic,
     
    #define IDX( i, j ) ( (j)*fxsize + (i) )
     
+    // HINT: you may attempt to
+    //       (i)  manually unroll the loop
+    //       (ii) ask the compiler to do it
+    // for instance
+    //#pragma GCC unroll 4
+    //
+    // HINT: in any case, this loop is a good candidate
+    //       for openmp parallelization
     double * restrict old = oldplane->data;
     double * restrict new = newplane->data;
 
@@ -179,9 +187,21 @@ inline int update_plane ( const int      periodic,
         int thread_id = omp_get_thread_num();
         double t0 = omp_get_wtime();
         
-        #pragma omp for collapse(2) schedule(dynamic, 100)
-        for (uint j = 1; j <= ysize; j++){
-            for (uint i = 1; i <= xsize; i++){
+        #pragma omp for collapse(2) schedule(dynamic, 500)
+    	for (uint j = 1; j <= ysize; j++){
+        	for ( uint i = 1; i <= xsize; i++)
+       		{ 
+                // NOTE: (i-1,j), (i+1,j), (i,j-1) and (i,j+1) always exist even
+                //       if this patch is at some border without periodic conditions;
+                //       in that case it is assumed that the +-1 points are outside the
+                //       plate and always have a value of 0, i.e. they are an
+                //       "infinite sink" of heat
+                
+                // five-points stencil formula
+                //
+                // HINT : check the serial version for some optimization
+                //
+
                 double alpha = 0.6;
                 double result = old[IDX(i,j)] * alpha;
                 double sum_i  = (old[IDX(i-1, j)] + old[IDX(i+1, j)]) / 4.0 * (1.0-alpha);
@@ -197,15 +217,20 @@ inline int update_plane ( const int      periodic,
 
     if ( periodic )
     {
+        // If the task grid is only 1 process wide...
         if ( N[_x_] == 1 )
         {
+            // ...propagate the East/West boundaries locally.
             for ( int j = 1; j <= ysize; j++ ) {
                 new[ IDX(0, j) ] = new[ IDX(xsize, j) ];
                 new[ IDX(xsize + 1, j) ] = new[ IDX(1, j) ];
             }
         }
+  
+        // If the task grid is only 1 process tall...
         if ( N[_y_] == 1 ) 
         {
+            // ...propagate the North/South boundaries locally.
             for ( int i = 1; i <= xsize; i++ ) {
                 new[ IDX(i, 0) ] = new[ IDX(i, ysize) ];
                 new[ IDX(i, ysize + 1) ] = new[ IDX(i, 1) ];
@@ -245,7 +270,7 @@ inline int get_total_energy( plane_t *plane,
        int thread_id = omp_get_thread_num();
        double t0 = omp_get_wtime();
        
-       #pragma omp for collapse(2) reduction(+:totenergy) schedule(dynamic, 100)
+       #pragma omp for collapse(2) reduction(+:totenergy) schedule(dynamic, 500)
         for ( int j = 1; j <= ysize; j++ ){
             for ( int i = 1; i <= xsize; i++ ){
                 totenergy += data[ IDX(i, j) ];
