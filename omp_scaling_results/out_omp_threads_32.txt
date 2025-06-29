@@ -1000,60 +1000,60 @@
  [ step  999 ] total injected energy is 4000, system energy is 4000 ( in avg 0.004 per grid point)
 
 --- Timing Results ---
-Total loop time: 58.525637 seconds
-Time spent in communication: 0.000097 seconds
-Time spent in computation: 37.553561 seconds
+Total loop time: 11.796341 seconds
+Time spent in communication: 0.000088 seconds
+Time spent in computation: 8.842051 seconds
 ----------------------
 
 
 --- Per-Thread Timing Analysis ---
 Number of OpenMP threads: 32
 Number of iterations: 1000
-Total accumulated computation time: 37.553561 seconds
+Total accumulated computation time: 8.842051 seconds
 
-Thread  0 computation time: 0.198538 seconds
-Thread  1 computation time: 2.125018 seconds
-Thread  2 computation time: 1.645494 seconds
-Thread  3 computation time: 2.588157 seconds
-Thread  4 computation time: 2.808770 seconds
-Thread  5 computation time: 2.151967 seconds
-Thread  6 computation time: 58.170692 seconds
-Thread  7 computation time: 2.020218 seconds
-Thread  8 computation time: 1.804258 seconds
-Thread  9 computation time: 2.612915 seconds
-Thread 10 computation time: 1.816226 seconds
-Thread 11 computation time: 2.177932 seconds
-Thread 12 computation time: 1.781128 seconds
-Thread 13 computation time: 1.946558 seconds
-Thread 14 computation time: 2.002917 seconds
-Thread 15 computation time: 2.584045 seconds
-Thread 16 computation time: 2.211180 seconds
-Thread 17 computation time: 1.898336 seconds
-Thread 18 computation time: 1.809101 seconds
-Thread 19 computation time: 2.272110 seconds
-Thread 20 computation time: 2.425265 seconds
-Thread 21 computation time: 2.458528 seconds
-Thread 22 computation time: 2.490242 seconds
-Thread 23 computation time: 1.846750 seconds
-Thread 24 computation time: 2.737683 seconds
-Thread 25 computation time: 2.570462 seconds
-Thread 26 computation time: 2.306634 seconds
-Thread 27 computation time: 1.949967 seconds
-Thread 28 computation time: 1.883245 seconds
-Thread 29 computation time: 1.924441 seconds
-Thread 30 computation time: 1.810530 seconds
-Thread 31 computation time: 2.123568 seconds
+Thread  0 computation time: 0.212164 seconds
+Thread  1 computation time: 0.263739 seconds
+Thread  2 computation time: 1.427136 seconds
+Thread  3 computation time: 0.754647 seconds
+Thread  4 computation time: 0.486473 seconds
+Thread  5 computation time: 0.331241 seconds
+Thread  6 computation time: 0.759449 seconds
+Thread  7 computation time: 1.819672 seconds
+Thread  8 computation time: 0.264739 seconds
+Thread  9 computation time: 0.599118 seconds
+Thread 10 computation time: 0.267691 seconds
+Thread 11 computation time: 0.251755 seconds
+Thread 12 computation time: 1.248376 seconds
+Thread 13 computation time: 0.244052 seconds
+Thread 14 computation time: 0.286049 seconds
+Thread 15 computation time: 0.445428 seconds
+Thread 16 computation time: 0.747021 seconds
+Thread 17 computation time: 0.290143 seconds
+Thread 18 computation time: 0.265448 seconds
+Thread 19 computation time: 0.250904 seconds
+Thread 20 computation time: 0.448633 seconds
+Thread 21 computation time: 0.265369 seconds
+Thread 22 computation time: 0.597483 seconds
+Thread 23 computation time: 0.452827 seconds
+Thread 24 computation time: 0.214049 seconds
+Thread 25 computation time: 0.230726 seconds
+Thread 26 computation time: 0.256438 seconds
+Thread 27 computation time: 1.370556 seconds
+Thread 28 computation time: 0.261320 seconds
+Thread 29 computation time: 0.614096 seconds
+Thread 30 computation time: 0.651412 seconds
+Thread 31 computation time: 0.669706 seconds
 
 --- Thread Timing Statistics ---
-Total thread time (sum of all threads): 123.152879 seconds
-Expected total thread time (comp_time * n_threads): 1201.713945 seconds
-Timing overhead: -1078.561067 seconds
+Total thread time (sum of all threads): 17.247860 seconds
+Expected total thread time (comp_time * n_threads): 282.945628 seconds
+Timing overhead: -265.697768 seconds
 ----------------------------------------------------------
-Min thread computation time: 0.198538 seconds
-Max thread computation time: 58.170692 seconds
-Avg thread computation time: 3.848527 seconds
-Work Imbalance (Max - Min):  57.972154 seconds
-Load Balance (Min/Max ratio): 0.341303%
+Min thread computation time: 0.212164 seconds
+Max thread computation time: 1.819672 seconds
+Avg thread computation time: 0.538996 seconds
+Work Imbalance (Max - Min):  1.607508 seconds
+Load Balance (Min/Max ratio): 11.659462%
 ----------------------------------------------------------
 
 total injected energy is 4000, system energy is 4000 ( in avg 0.004 per grid point)

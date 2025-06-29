@@ -1000,30 +1000,30 @@
  [ step  999 ] total injected energy is 4000, system energy is 4000 ( in avg 0.004 per grid point)
 
 --- Timing Results ---
-Total loop time: 58.193308 seconds
-Time spent in communication: 0.000084 seconds
-Time spent in computation: 37.467760 seconds
+Total loop time: 10.302156 seconds
+Time spent in communication: 0.000106 seconds
+Time spent in computation: 7.537144 seconds
 ----------------------
 
 
 --- Per-Thread Timing Analysis ---
 Number of OpenMP threads: 2
 Number of iterations: 1000
-Total accumulated computation time: 37.467760 seconds
+Total accumulated computation time: 7.537144 seconds
 
-Thread  0 computation time: 46.591175 seconds
-Thread  1 computation time: 46.326491 seconds
+Thread  0 computation time: 5.173797 seconds
+Thread  1 computation time: 5.296358 seconds
 
 --- Thread Timing Statistics ---
-Total thread time (sum of all threads): 92.917666 seconds
-Expected total thread time (comp_time * n_threads): 74.935521 seconds
-Timing overhead: 17.982145 seconds
+Total thread time (sum of all threads): 10.470155 seconds
+Expected total thread time (comp_time * n_threads): 15.074288 seconds
+Timing overhead: -4.604133 seconds
 ----------------------------------------------------------
-Min thread computation time: 46.326491 seconds
-Max thread computation time: 46.591175 seconds
-Avg thread computation time: 46.458833 seconds
-Work Imbalance (Max - Min):  0.264684 seconds
-Load Balance (Min/Max ratio): 99.431902%
+Min thread computation time: 5.173797 seconds
+Max thread computation time: 5.296358 seconds
+Avg thread computation time: 5.235078 seconds
+Work Imbalance (Max - Min):  0.122561 seconds
+Load Balance (Min/Max ratio): 97.685934%
 ----------------------------------------------------------
 
 total injected energy is 4000, system energy is 4000 ( in avg 0.004 per grid point)
