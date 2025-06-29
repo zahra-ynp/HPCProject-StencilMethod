@@ -224,58 +224,41 @@ for (int t = 0; t < Ntasks; t++) {
       double comm_time_north_send=0, comm_time_north_recv=0, comm_time_south_send=0, comm_time_south_recv=0;
       double comm_time_east_send=0, comm_time_east_recv=0, comm_time_west_send=0, comm_time_west_recv=0;
       double t0;
-      // NORTH
+      printf("Rank %d: Starting iteration %d\n", Rank, iter); fflush(stdout);
+      printf("Rank %d: Iteration %d -- About to post communication. Neighbors: N=%d S=%d E=%d W=%d\n",
+          Rank, iter, neighbours[NORTH], neighbours[SOUTH], neighbours[EAST], neighbours[WEST]);
+      fflush(stdout);
+      req_count = 0;
       if (neighbours[NORTH] != MPI_PROC_NULL) {
-          printf("Rank %d: Posting Irecv from NORTH\n", Rank); fflush(stdout);
-          t0 = MPI_Wtime();
+          printf("Rank %d: Posting Irecv from NORTH (tag 0, size %d)\n", Rank, sizex); fflush(stdout);
           MPI_Irecv(&current_plane[0 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD, &nb_reqs[req_count++]);
-          comm_time_north_recv += MPI_Wtime() - t0;
-
-          printf("Rank %d: Posting Isend to NORTH\n", Rank); fflush(stdout);
-          t0 = MPI_Wtime();
+          printf("Rank %d: Posting Isend to NORTH (tag 0, size %d)\n", Rank, sizex); fflush(stdout);
           MPI_Isend(&current_plane[1 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD, &nb_reqs[req_count++]);
-          comm_time_north_send += MPI_Wtime() - t0;
       }
-      // SOUTH
       if (neighbours[SOUTH] != MPI_PROC_NULL) {
-          printf("Rank %d: Posting Irecv from SOUTH\n", Rank); fflush(stdout);
-          t0 = MPI_Wtime();
+          printf("Rank %d: Posting Irecv from SOUTH (tag 1, size %d)\n", Rank, sizex); fflush(stdout);
           MPI_Irecv(&current_plane[(sizey + 1) * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD, &nb_reqs[req_count++]);
-          comm_time_south_recv += MPI_Wtime() - t0;
-
-          printf("Rank %d: Posting Isend to SOUTH\n", Rank); fflush(stdout);
-          t0 = MPI_Wtime();
+          printf("Rank %d: Posting Isend to SOUTH (tag 1, size %d)\n", Rank, sizex); fflush(stdout);
           MPI_Isend(&current_plane[sizey * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD, &nb_reqs[req_count++]);
-          comm_time_south_send += MPI_Wtime() - t0;
       }
-      // EAST
       if (neighbours[EAST] != MPI_PROC_NULL) {
-          printf("Rank %d: Posting Irecv from EAST\n", Rank); fflush(stdout);
-          t0 = MPI_Wtime();
+          printf("Rank %d: Posting Irecv from EAST (tag 2, size %d)\n", Rank, sizey); fflush(stdout);
           MPI_Irecv(buffers[RECV][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &nb_reqs[req_count++]);
-          comm_time_east_recv += MPI_Wtime() - t0;
-
-          printf("Rank %d: Posting Isend to EAST\n", Rank); fflush(stdout);
-          t0 = MPI_Wtime();
+          printf("Rank %d: Posting Isend to EAST (tag 2, size %d)\n", Rank, sizey); fflush(stdout);
           MPI_Isend(buffers[SEND][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &nb_reqs[req_count++]);
-          comm_time_east_send += MPI_Wtime() - t0;
       }
-      // WEST
       if (neighbours[WEST] != MPI_PROC_NULL) {
-          printf("Rank %d: Posting Irecv from WEST\n", Rank); fflush(stdout);
-          t0 = MPI_Wtime();
+          printf("Rank %d: Posting Irecv from WEST (tag 3, size %d)\n", Rank, sizey); fflush(stdout);
           MPI_Irecv(buffers[RECV][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &nb_reqs[req_count++]);
-          comm_time_west_recv += MPI_Wtime() - t0;
-
-          printf("Rank %d: Posting Isend to WEST\n", Rank); fflush(stdout);
-          t0 = MPI_Wtime();
+          printf("Rank %d: Posting Isend to WEST (tag 3, size %d)\n", Rank, sizey); fflush(stdout);
           MPI_Isend(buffers[SEND][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &nb_reqs[req_count++]);
-          comm_time_west_send += MPI_Wtime() - t0;
       }
-      // Wait for all communication to finish
-      if (req_count > 0) {
-          printf("Rank %d: Waiting for all communication to finish\n", Rank); fflush(stdout);
-          MPI_Waitall(req_count, nb_reqs, MPI_STATUSES_IGNORE);
+      printf("Rank %d: req_count = %d\n", Rank, req_count); fflush(stdout);
+      printf("Rank %d: Waiting for all communication to finish (req_count=%d)\n", Rank, req_count); fflush(stdout);
+      int err = MPI_Waitall(req_count, nb_reqs, MPI_STATUSES_IGNORE);
+      if (err != MPI_SUCCESS) {
+          printf("Rank %d: MPI_Waitall error %d\n", Rank, err); fflush(stdout);
+      } else {
           printf("Rank %d: All communication finished\n", Rank); fflush(stdout);
       }
       double comm_time_this_iter = comm_time_north_send + comm_time_north_recv +
@@ -321,6 +304,7 @@ for (int t = 0; t < Ntasks; t++) {
       /* swap plane indexes for the new iteration */
       current = !current;
       
+      printf("Rank %d: Finished iteration %d\n", Rank, iter); fflush(stdout);
     }
   
   t_end = MPI_Wtime();
