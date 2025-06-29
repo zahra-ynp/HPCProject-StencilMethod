@@ -41,7 +41,8 @@ for nodes in "${NODE_COUNTS[@]}"; do
     OUT_FILE="mpi_scaling_results/out_nodes_${nodes}.txt"
 
     echo "Running with $nodes nodes ($mpi_tasks MPI tasks, $THREADS_PER_TASK threads/task)..."
-    mpirun -np $((NTASKS_PER_NODE * nodes)) ./${EXEC} ${ARGS} > ${OUT_FILE}
+    srun --nodes=$nodes --ntasks-per-node=$NTASKS_PER_NODE --cpus-per-task=$THREADS_PER_TASK \
+    ./${EXEC} ${ARGS} > "${OUT_FILE}"
 
     min_comp=$(grep "Min computation time" "$OUT_FILE" | awk '{print $4}')
     max_comp=$(grep "Max computation time" "$OUT_FILE" | awk '{print $4}')
