@@ -185,11 +185,6 @@ inline int update_plane ( const int      periodic,
 
     #pragma omp parallel
     {
-        #pragma omp master
-        {
-            printf("update_plane: Number of threads = %d\n", omp_get_num_threads());
-            printf("g_n_omp_threads = %d\n", g_n_omp_threads);
-        }
 
         int thread_id = omp_get_thread_num();
         double thread_start_time = omp_get_wtime();
@@ -198,7 +193,6 @@ inline int update_plane ( const int      periodic,
     	for (uint j = 1; j <= ysize; j++){
         	for ( uint i = 1; i <= xsize; i++)
        		{ 
-                thread_work[thread_id]++;
                 // NOTE: (i-1,j), (i+1,j), (i,j-1) and (i,j+1) always exist even
                 //       if this patch is at some border without periodic conditions;
                 //       in that case it is assumed that the +-1 points are outside the
@@ -228,10 +222,6 @@ inline int update_plane ( const int      periodic,
         g_per_thread_comp_time[thread_id] += (thread_end_time - thread_start_time);
     }
 
-    for (int i = 0; i < g_n_omp_threads; i++)
-    {
-        printf("Thread %d did %d iterations\n", i, thread_work[i]);
-    }
     free(thread_work);
 
     if ( periodic )
