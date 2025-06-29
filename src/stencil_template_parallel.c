@@ -74,6 +74,17 @@ int main(int argc, char **argv)
 			 &Nsources, &Nsources_local, &Sources_local, &energy_per_source,
 			 &planes[0], &buffers[0] );
 
+// Debug: Print neighbor array for each rank
+MPI_Barrier(MPI_COMM_WORLD); // Synchronize for clean output
+for (int t = 0; t < Ntasks; t++) {
+    if (t == Rank) {
+        printf("Rank %d neighbors: N %d  E %d  S %d  W %d\n",
+               Rank, neighbours[NORTH], neighbours[EAST], neighbours[SOUTH], neighbours[WEST]);
+        fflush(stdout);
+    }
+    MPI_Barrier(MPI_COMM_WORLD); // Ensure ordered output
+}
+
   if ( ret )
     {
       printf("task %d is opting out with termination code %d\n",
