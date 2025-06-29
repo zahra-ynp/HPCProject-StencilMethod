@@ -28,7 +28,7 @@ export OMP_PROC_BIND=spread
 
 # Compile the code first
 echo "Compiling stencil code..."
-mpicc -fopenmp -O3 -o stencil_hybrid src/stencil_template_parallel.c
+mpicc -fopenmp -O3 -o stencil_hybrid src/stencil_template_parallel.c -Iinclude -lm
 if [ $? -ne 0 ]; then
     echo "ERROR: Compilation failed!"
     exit 1
