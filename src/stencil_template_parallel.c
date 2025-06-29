@@ -242,16 +242,12 @@ for (int t = 0; t < Ntasks; t++) {
           MPI_Isend(&current_plane[sizey * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD, &nb_reqs[req_count++]);
       }
       if (neighbours[EAST] != MPI_PROC_NULL) {
-          printf("Rank %d: Posting Irecv from EAST (tag 2, size %d)\n", Rank, sizey); fflush(stdout);
-          MPI_Irecv(buffers[RECV][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &nb_reqs[req_count++]);
           printf("Rank %d: Posting Isend to EAST (tag 2, size %d)\n", Rank, sizey); fflush(stdout);
           MPI_Isend(buffers[SEND][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &nb_reqs[req_count++]);
       }
       if (neighbours[WEST] != MPI_PROC_NULL) {
-          printf("Rank %d: Posting Irecv from WEST (tag 3, size %d)\n", Rank, sizey); fflush(stdout);
-          MPI_Irecv(buffers[RECV][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &nb_reqs[req_count++]);
-          printf("Rank %d: Posting Isend to WEST (tag 3, size %d)\n", Rank, sizey); fflush(stdout);
-          MPI_Isend(buffers[SEND][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &nb_reqs[req_count++]);
+          printf("Rank %d: Posting Irecv from WEST (tag 2, size %d)\n", Rank, sizey); fflush(stdout);
+          MPI_Irecv(buffers[RECV][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 2, myCOMM_WORLD, &nb_reqs[req_count++]);
       }
       printf("Rank %d: req_count = %d\n", Rank, req_count); fflush(stdout);
       printf("Rank %d: Waiting for all communication to finish (req_count=%d)\n", Rank, req_count); fflush(stdout);
