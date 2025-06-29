@@ -203,7 +203,6 @@ inline int update_plane ( const int      periodic,
                 //
                 // HINT : check the serial version for some optimization
                 //
-                double t0 = omp_get_wtime();
 
                 double alpha = 0.6;
                 double result = old[ IDX(i,j) ] * alpha;
@@ -214,11 +213,11 @@ inline int update_plane ( const int      periodic,
                 // Store the final calculated value in the 'new' grid.
                 new[ IDX(i,j) ] = result;
                 
-                double t1 = omp_get_wtime();
-                local_time += (t1 - t0);
+
             }	
 	}
-        
+        ouble t1 = omp_get_wtime();
+        local_time += (t1 - t0);
         // Use atomic operation to avoid race conditions
         #pragma omp atomic
         g_per_thread_comp_time[thread_id] += local_time;
@@ -280,23 +279,19 @@ inline int get_total_energy( plane_t *plane,
    #pragma omp parallel
    {
        int thread_id = omp_get_thread_num();
-       double local_time = 0.0;
+       double t0 = omp_get_wtime();
        
        #pragma omp for collapse(2) schedule(dynamic, 1) reduction(+:totenergy)
         for ( int j = 1; j <= ysize; j++ ){
             for ( int i = 1; i <= xsize; i++ ){
-                double t0 = omp_get_wtime();
-
-                totenergy += data[ IDX(i, j) ];
-
-                double t1 = omp_get_wtime();
-                local_time += (t1 - t0);
+                totenergy += data[ IDX(i, j) ];  
             }
        } 
-       
+       double t1 = omp_get_wtime();
+       double local_time = (t1 - t0);
        // Use atomic operation to avoid race conditions
        #pragma omp atomic
-       g_per_thread_comp_time[thread_id] += local_time;
+       g_per_thread_comp_time[thread_id] += local_time; 
    }
    
    #undef IDX
