@@ -346,11 +346,11 @@ int main(int argc, char **argv)
 
     double min_time = 1e9, max_time = 0, sum_time = 0;
     for (int i = 0; i < comm_event; i++) {
-        if (comm_times[i] < min_time) min_time = comm_times[i];
-        if (comm_times[i] > max_time) max_time = comm_times[i];
-        sum_time += comm_times[i];
+        if (comm_durations[i] < min_time) min_time = comm_durations[i];
+        if (ccomm_durations[i] > max_time) max_time = comm_durations[i];
+        sum_time += comm_durations[i];
     }
-    
+
     double avg_time = sum_time / comm_event;
     printf("\n--- Process Timing Statistics ---\n");
     printf("----------------------------------------------------------\n");
