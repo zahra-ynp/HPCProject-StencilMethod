@@ -107,7 +107,6 @@ for (int t = 0; t < Ntasks; t++) {
     {
       double section_start_time;
  
-      MPI_Request reqs[8];
       
       /* new energy from sources */
       inject_energy( periodic, Nsources_local, Sources_local, energy_per_source, &planes[current], N );
@@ -116,26 +115,23 @@ for (int t = 0; t < Ntasks; t++) {
 
       /* -------------------------------------- */
 
-      // Create local variable
-      // 'current_plane' is a pointer to the grid data for the current time step.
       double* current_plane = planes[current].data;
-      // 'sizex' and 'sizey' are the dimensions of the actual data grid (without ghost cells).
       const int sizex = planes[current].size[_x_];
       const int sizey = planes[current].size[_y_];
-      // 'full_sizex' is the total width of the allocated memory for one row, including the two ghost cells.
       const int full_sizex = sizex + 2;
 
-      // [A] Pack data into the pre-allocated SEND buffers
+      // An array to hold the requests for our 8 non-blocking communications (4 sends, 4 recvs)
+      MPI_Request requests[8];
+      int request_count = 0;
+
+      // [A] Pack East/West buffers
       if (neighbours[WEST] != MPI_PROC_NULL) {
-          for (int i = 0; i < sizey; i++) {
-              buffers[SEND][WEST][i] = current_plane[(i + 1) * full_sizex + 1];
-          }
+          for (int i = 0; i < sizey; i++) buffers[SEND][WEST][i] = current_plane[(i + 1) * full_sizex + 1];
       }
       if (neighbours[EAST] != MPI_PROC_NULL) {
-          for (int i = 0; i < sizey; i++) {
-              buffers[SEND][EAST][i] = current_plane[(i + 1) * full_sizex + sizex];
-          }
+          for (int i = 0; i < sizey; i++) buffers[SEND][EAST][i] = current_plane[(i + 1) * full_sizex + sizex];
       }
+
 
       // [B] perfoem the halo communications
       //     (1) use Send / Recv
@@ -147,10 +143,9 @@ for (int t = 0; t < Ntasks; t++) {
       /* --------------------------------------  */
 
       /* --------------------------------------
-      * HALO EXCHANGE START (Send/Recv)
+      * HALO EXCHANGE START (Send/Recv)  --- BLOCKING VERSION ---
       * ---------------------------------------  */
 
-      // --- BLOCKING VERSION (commented out, now pairwise) ---
       /*
       MPI_Status status;
       double t0, comm_time_north_send=0, comm_time_north_recv=0, comm_time_south_send=0, comm_time_south_recv=0;
@@ -218,60 +213,39 @@ for (int t = 0; t < Ntasks; t++) {
       total_comm_time += comm_time_this_iter;
       */
 
-      // --- NON-BLOCKING VERSION (pairwise, active) ---
-      MPI_Request nb_reqs[8];
-      int req_count = 0;
-      double comm_time_north_send=0, comm_time_north_recv=0, comm_time_south_send=0, comm_time_south_recv=0;
-      double comm_time_east_send=0, comm_time_east_recv=0, comm_time_west_send=0, comm_time_west_recv=0;
-      double t0;
-      printf("Rank %d: Starting iteration %d\n", Rank, iter); fflush(stdout);
-      printf("Rank %d: Iteration %d -- About to post communication. Neighbors: N=%d S=%d E=%d W=%d\n",
-          Rank, iter, neighbours[NORTH], neighbours[SOUTH], neighbours[EAST], neighbours[WEST]);
-      fflush(stdout);
-      req_count = 0;
-      // Post all Irecvs first
-      if (neighbours[NORTH] != MPI_PROC_NULL)
-          MPI_Irecv(&current_plane[0 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD, &nb_reqs[req_count++]);
-      if (neighbours[SOUTH] != MPI_PROC_NULL)
-          MPI_Irecv(&current_plane[(sizey + 1) * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD, &nb_reqs[req_count++]);
-      if (neighbours[EAST] != MPI_PROC_NULL)
-          MPI_Irecv(buffers[RECV][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 3, myCOMM_WORLD, &nb_reqs[req_count++]);
-      if (neighbours[WEST] != MPI_PROC_NULL)
-          MPI_Irecv(buffers[RECV][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 2, myCOMM_WORLD, &nb_reqs[req_count++]);
-      // Then post all Isends
-      if (neighbours[NORTH] != MPI_PROC_NULL)
-          MPI_Isend(&current_plane[1 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD, &nb_reqs[req_count++]);
-      if (neighbours[SOUTH] != MPI_PROC_NULL)
-          MPI_Isend(&current_plane[sizey * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD, &nb_reqs[req_count++]);
-      if (neighbours[EAST] != MPI_PROC_NULL)
-          MPI_Isend(buffers[SEND][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &nb_reqs[req_count++]);
-      if (neighbours[WEST] != MPI_PROC_NULL)
-          MPI_Isend(buffers[SEND][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &nb_reqs[req_count++]);
-      printf("Rank %d: req_count = %d\n", Rank, req_count); fflush(stdout);
-      printf("Rank %d: Waiting for all communication to finish (req_count=%d)\n", Rank, req_count); fflush(stdout);
-      int err = MPI_Waitall(req_count, nb_reqs, MPI_STATUSES_IGNORE);
-      if (err != MPI_SUCCESS) {
-          printf("Rank %d: MPI_Waitall error %d\n", Rank, err); fflush(stdout);
-      } else {
-          printf("Rank %d: All communication finished\n", Rank); fflush(stdout);
-      }
-      double comm_time_this_iter = comm_time_north_send + comm_time_north_recv +
-                                   comm_time_south_send + comm_time_south_recv +
-                                   comm_time_east_send + comm_time_east_recv +
-                                   comm_time_west_send + comm_time_west_recv;
-      total_comm_time += comm_time_this_iter;
+      /* ---------------------------------------------------- */
+      /* HALO EXCHANGE START (Non-Blocking)      */
+      /* ---------------------------------------------------- */
 
 
-      // [C] Unpack data from the pre-allocated RECV buffers
+      // [B] Post all non-blocking communications
+
+      // --- Post all RECEIVES first ---
+      // This tells MPI we are ready to receive data from our neighbors.
+      if (neighbours[NORTH] != MPI_PROC_NULL) MPI_Irecv(&current_plane[0 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 1, myCOMM_WORLD, &requests[request_count++]);
+      if (neighbours[SOUTH] != MPI_PROC_NULL) MPI_Irecv(&current_plane[(sizey + 1) * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 0, myCOMM_WORLD, &requests[request_count++]); 
+      if (neighbours[EAST] != MPI_PROC_NULL) MPI_Irecv(buffers[RECV][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 3, myCOMM_WORLD, &requests[request_count++]); 
+      if (neighbours[WEST] != MPI_PROC_NULL) MPI_Irecv(buffers[RECV][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 2, myCOMM_WORLD, &requests[request_count++]); 
+      
+      // --- Then, post all SENDS ---
+      // This tells MPI to start sending our boundary data to our neighbors.
+      if (neighbours[NORTH] != MPI_PROC_NULL) MPI_Isend(&current_plane[1 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD, &requests[request_count++]);
+      if (neighbours[SOUTH] != MPI_PROC_NULL) MPI_Isend(&current_plane[sizey * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD, &requests[request_count++]);
+      if (neighbours[EAST] != MPI_PROC_NULL) MPI_Isend(buffers[SEND][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &requests[request_count++]);
+      if (neighbours[WEST] != MPI_PROC_NULL) MPI_Isend(buffers[SEND][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &requests[request_count++]); 
+
+      // --- Wait for all communications to complete ---
+      // MPI_Waitall will pause here until every single Isend and Irecv is finished.
+      MPI_Waitall(request_count, requests, MPI_STATUSES_IGNORE);
+      printf("Rank %d: All communications completed\n", Rank); fflush(stdout);
+      
+
+      // [C] Unpack the received East/West data
       if (neighbours[WEST] != MPI_PROC_NULL) {
-          for (int i = 0; i < sizey; i++) {
-              current_plane[(i + 1) * full_sizex + 0] = buffers[RECV][WEST][i];
-          }
+          for (int i = 0; i < sizey; i++) current_plane[(i + 1) * full_sizex + 0] = buffers[RECV][WEST][i];
       }
       if (neighbours[EAST] != MPI_PROC_NULL) {
-          for (int i = 0; i < sizey; i++) {
-              current_plane[(i + 1) * full_sizex + sizex + 1] = buffers[RECV][EAST][i];
-          }
+          for (int i = 0; i < sizey; i++) current_plane[(i + 1) * full_sizex + sizex + 1] = buffers[RECV][EAST][i];
       }
 
       /*
@@ -292,8 +266,7 @@ for (int t = 0; t < Ntasks; t++) {
       total_comp_time += (MPI_Wtime() - section_start_time);
 
       /* output if needed */
-      if ( output_energy_stat_perstep )
-	output_energy_stat ( iter, &planes[!current], (iter+1) * Nsources*energy_per_source, Rank, &myCOMM_WORLD );
+      if ( output_energy_stat_perstep ) output_energy_stat ( iter, &planes[!current], (iter+1) * Nsources*energy_per_source, Rank, &myCOMM_WORLD );
 	
       /* swap plane indexes for the new iteration */
       current = !current;
@@ -971,5 +944,4 @@ int initialize_sources( int       Me,
 
   return 0;
 }
-
 
