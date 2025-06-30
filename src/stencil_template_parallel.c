@@ -75,7 +75,6 @@ int main(int argc, char **argv)
 			 &planes[0], &buffers[0] );
 
 
-
   if ( ret )
     {
       printf("task %d is opting out with termination code %d\n",
@@ -94,7 +93,8 @@ int main(int argc, char **argv)
   
   t_start = MPI_Wtime();
 
-  for (int iter = 0; iter < Niterations; ++iter)
+
+for (int iter = 0; iter < Niterations; ++iter)
     
     {
       double section_start_time;
@@ -111,7 +111,6 @@ int main(int argc, char **argv)
       const int sizex = planes[current].size[_x_];
       const int sizey = planes[current].size[_y_];
       const int full_sizex = sizex + 2;
-
 
       MPI_Request requests[8];
       int request_count = 0;
@@ -726,7 +725,7 @@ int initialize ( MPI_Comm *Comm,
   int    dimensions = 2 - (Ntasks <= ((int)formfactor+1) );
 
   
-  if ( dimensions == 1 )
+ /* if ( dimensions == 1 )
     {
       if ( (*S)[_x_] >= (*S)[_y_] )
 	Grid[_x_] = Ntasks, Grid[_y_] = 1;
@@ -747,12 +746,28 @@ int initialize ( MPI_Comm *Comm,
 	Grid[_x_] = Ntasks/first, Grid[_y_] = first;
       else
 	Grid[_x_] = first, Grid[_y_] = Ntasks/first;
+    }*/
+
+// --- Choose the most square 2D process grid (Px, Py) ---
+int Px = 1, Py = Ntasks;
+int min_diff = Ntasks; // Start with a large difference
+for (int i = 1; i <= sqrt(Ntasks); i++) {
+    if (Ntasks % i == 0) {
+        int j = Ntasks / i;
+        if (abs(i - j) < min_diff) {
+            Px = i;
+            Py = j;
+            min_diff = abs(i - j);
+        }
     }
+}
+Grid[_x_] = Px;
+Grid[_y_] = Py;
+(*N)[_x_] = Grid[_x_];
+(*N)[_y_] = Grid[_y_];
 
   (*N)[_x_] = Grid[_x_];
-  (*N)[_y_] = Grid[_y_];
-  
-
+  (*N)[_y_] = Grid[_y_]
   // ··································································
   // my cooridnates in the grid of processors
   //
