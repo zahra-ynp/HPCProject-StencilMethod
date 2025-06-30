@@ -111,10 +111,6 @@ int main(int argc, char **argv)
       const int sizey = planes[current].size[_y_];
       const int full_sizex = sizex + 2;
 
-      // Print neighbors before communication
-      printf("Rank %d: Iteration %d -- About to post communication. Neighbors: N=%d S=%d E=%d W=%d\n",
-             Rank, iter, neighbours[NORTH], neighbours[SOUTH], neighbours[EAST], neighbours[WEST]);
-      fflush(stdout);
 
       MPI_Request requests[8];
       int request_count = 0;
@@ -217,50 +213,41 @@ int main(int argc, char **argv)
       // Post all RECEIVES first
       if (neighbours[NORTH] != MPI_PROC_NULL) {
           MPI_Irecv(&current_plane[0 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 1, myCOMM_WORLD, &requests[request_count]);
-          printf("Rank %d: Posted Irecv from NORTH (neighbor %d) at req %d\n", Rank, neighbours[NORTH], request_count);
           request_count++;
       }
       if (neighbours[SOUTH] != MPI_PROC_NULL) {
           MPI_Irecv(&current_plane[(sizey + 1) * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 0, myCOMM_WORLD, &requests[request_count]);
-          printf("Rank %d: Posted Irecv from SOUTH (neighbor %d) at req %d\n", Rank, neighbours[SOUTH], request_count);
           request_count++;
       }
       if (neighbours[EAST] != MPI_PROC_NULL) {
           MPI_Irecv(buffers[RECV][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 3, myCOMM_WORLD, &requests[request_count]);
-          printf("Rank %d: Posted Irecv from EAST (neighbor %d) at req %d\n", Rank, neighbours[EAST], request_count);
           request_count++;
       }
       if (neighbours[WEST] != MPI_PROC_NULL) {
           MPI_Irecv(buffers[RECV][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 2, myCOMM_WORLD, &requests[request_count]);
-          printf("Rank %d: Posted Irecv from WEST (neighbor %d) at req %d\n", Rank, neighbours[WEST], request_count);
           request_count++;
       }
 
       // Then post all SENDS
       if (neighbours[NORTH] != MPI_PROC_NULL) {
           MPI_Isend(&current_plane[1 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD, &requests[request_count]);
-          printf("Rank %d: Posted Isend to NORTH (neighbor %d) at req %d\n", Rank, neighbours[NORTH], request_count);
           request_count++;
       }
       if (neighbours[SOUTH] != MPI_PROC_NULL) {
           MPI_Isend(&current_plane[sizey * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD, &requests[request_count]);
-          printf("Rank %d: Posted Isend to SOUTH (neighbor %d) at req %d\n", Rank, neighbours[SOUTH], request_count);
           request_count++;
       }
       if (neighbours[EAST] != MPI_PROC_NULL) {
           MPI_Isend(buffers[SEND][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &requests[request_count]);
-          printf("Rank %d: Posted Isend to EAST (neighbor %d) at req %d\n", Rank, neighbours[EAST], request_count);
           request_count++;
       }
       if (neighbours[WEST] != MPI_PROC_NULL) {
           MPI_Isend(buffers[SEND][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &requests[request_count]);
-          printf("Rank %d: Posted Isend to WEST (neighbor %d) at req %d\n", Rank, neighbours[WEST], request_count);
           request_count++;
       }
       // --- Wait for all communications to complete ---
       // MPI_Waitall will pause here until every single Isend and Irecv is finished.
       MPI_Waitall(request_count, requests, MPI_STATUSES_IGNORE);
-      printf("Rank %d: All communications completed\n", Rank); fflush(stdout);
       
 
       // [C] Unpack the received East/West data
@@ -294,7 +281,6 @@ int main(int argc, char **argv)
       /* swap plane indexes for the new iteration */
       current = !current;
       
-      printf("Rank %d: Finished iteration %d\n", Rank, iter); fflush(stdout);
     }
   
   t_end = MPI_Wtime();
