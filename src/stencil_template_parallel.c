@@ -91,9 +91,6 @@ int main(int argc, char **argv)
   double total_comm_time = 0.0;
   double total_comp_time = 0.0;
 
-  double comm_start_times[8];
-  double comm_durations[8];
-  int comm_event = 0;
   
   t_start = MPI_Wtime();
 
@@ -216,63 +213,43 @@ int main(int argc, char **argv)
       // [B] Post all non-blocking communications
       // Post all RECEIVES first
       if (neighbours[NORTH] != MPI_PROC_NULL) {
-          comm_start_times[comm_event] = MPI_Wtime();
           MPI_Irecv(&current_plane[0 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 1, myCOMM_WORLD, &requests[request_count]);
           request_count++;
-          comm_event++;
       }
       if (neighbours[SOUTH] != MPI_PROC_NULL) {
-          comm_start_times[comm_event] = MPI_Wtime();
           MPI_Irecv(&current_plane[(sizey + 1) * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 0, myCOMM_WORLD, &requests[request_count]);
           request_count++;
-          comm_event++;
       }
       if (neighbours[EAST] != MPI_PROC_NULL) {
-          comm_start_times[comm_event] = MPI_Wtime();
           MPI_Irecv(buffers[RECV][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 3, myCOMM_WORLD, &requests[request_count]);
           request_count++;  
-          comm_event++;
       }
       if (neighbours[WEST] != MPI_PROC_NULL) {
-          comm_start_times[comm_event] = MPI_Wtime();
           MPI_Irecv(buffers[RECV][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 2, myCOMM_WORLD, &requests[request_count]);
           request_count++;
-          comm_event++;
       }
 
       // Then post all SENDS
       if (neighbours[NORTH] != MPI_PROC_NULL) {
-          comm_start_times[comm_event] = MPI_Wtime();
           MPI_Isend(&current_plane[1 * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[NORTH], 0, myCOMM_WORLD, &requests[request_count]);
           request_count++;
-          comm_event++;
       }
       if (neighbours[SOUTH] != MPI_PROC_NULL) {
-          comm_start_times[comm_event] = MPI_Wtime();
           MPI_Isend(&current_plane[sizey * full_sizex + 1], sizex, MPI_DOUBLE, neighbours[SOUTH], 1, myCOMM_WORLD, &requests[request_count]);
           request_count++;
-          comm_event++;
       }
       if (neighbours[EAST] != MPI_PROC_NULL) {
-          comm_start_times[comm_event] = MPI_Wtime();
           MPI_Isend(buffers[SEND][EAST], sizey, MPI_DOUBLE, neighbours[EAST], 2, myCOMM_WORLD, &requests[request_count]);
           request_count++;
-          comm_event++;
       }
       if (neighbours[WEST] != MPI_PROC_NULL) {
-          comm_start_times[comm_event] = MPI_Wtime();
           MPI_Isend(buffers[SEND][WEST], sizey, MPI_DOUBLE, neighbours[WEST], 3, myCOMM_WORLD, &requests[request_count]);
           request_count++;
-          comm_event++; 
       }
       // --- Wait for all communications to complete ---
       // MPI_Waitall will pause here until every single Isend and Irecv is finished.
       MPI_Waitall(request_count, requests, MPI_STATUSES_IGNORE);
 
-      for (int i = 0; i < comm_event; i++) {
-          comm_durations[i] = MPI_Wtime() - comm_start_times[i];
-      }
-      
 
       // [C] Unpack the received East/West data
       if (neighbours[WEST] != MPI_PROC_NULL) {
@@ -342,20 +319,6 @@ int main(int argc, char **argv)
       printf("Avg thread computation time: %f seconds\n", avg_comp_time);
       printf("----------------------------------------------------------\n\n");
     }
-
-
-    double min_time = 1e9, max_time = 0, sum_time = 0;
-    for (int i = 0; i < comm_event; i++) {
-        if (comm_durations[i] < min_time) min_time = comm_durations[i];
-        if (comm_durations[i] > max_time) max_time = comm_durations[i];
-        sum_time += comm_durations[i];
-    }
-
-    double avg_time = sum_time / comm_event;
-    printf("\n--- Process Timing Statistics ---\n");
-    printf("----------------------------------------------------------\n");
-    printf("Rank %d: Comm events: %d, Min: %f, Max: %f, Avg: %f\n", Rank, comm_event, min_time, max_time, avg_time);
-    printf("----------------------------------------------------------\n\n");
 
 
   output_energy_stat ( -1, &planes[!current], Niterations * Nsources*energy_per_source, Rank, &myCOMM_WORLD );
