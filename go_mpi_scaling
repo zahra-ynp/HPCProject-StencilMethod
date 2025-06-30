@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
-#SBATCH --cpus-per-task=28
+#SBATCH --ntasks-per-node=7
+#SBATCH --cpus-per-task=16
 #SBATCH --mem=0
 #SBATCH --partition=dcgp_usr_prod
 #SBATCH --account=uTS25_Tornator_0
-#SBATCH --time=00:30:00
+#SBATCH --time=00:10:00
 #SBATCH --job-name=mpi_strong_scaling
 #SBATCH --output=mpi_scaling_results/log_%j.out
 #SBATCH --error=mpi_scaling_results/err_%j.err
@@ -29,18 +29,10 @@ echo "Running with ${SLURM_JOB_NUM_NODES} nodes (${SLURM_NTASKS_PER_NODE} MPI ta
 srun --nodes=${SLURM_JOB_NUM_NODES} --ntasks-per-node=${SLURM_NTASKS_PER_NODE} --cpus-per-task=${SLURM_CPUS_PER_TASK} \
     ./${EXEC} ${ARGS} > "${OUT_FILE}"
 
-min_comp=$(grep "Min computation time" "$OUT_FILE" | awk '{print $4}')
-max_comp=$(grep "Max computation time" "$OUT_FILE" | awk '{print $4}')
-avg_comp=$(grep "Avg computation time" "$OUT_FILE" | awk '{print $4}')
-min_comm=$(grep "Min communication time" "$OUT_FILE" | awk '{print $4}')
-max_comm=$(grep "Max communication time" "$OUT_FILE" | awk '{print $4}')
-avg_comm=$(grep "Avg communication time" "$OUT_FILE" | awk '{print $4}')
-
-RESULTS_FILE=mpi_scaling_results/mpi_strong_scaling.csv
-if [ ! -f "$RESULTS_FILE" ]; then
-    echo "nodes,mpi_tasks,threads_per_task,min_comp,max_comp,avg_comp,min_comm,max_comm,avg_comm" > $RESULTS_FILE
-fi
-
-echo "${SLURM_JOB_NUM_NODES},${SLURM_NTASKS_PER_NODE},${SLURM_CPUS_PER_TASK},$min_comp,$max_comp,$avg_comp,$min_comm,$max_comm,$avg_comm" >> $RESULTS_FILE
+comm=$(grep "Time spent in communication" "$OUT_FILE" | awk '{print $5}')
+min=$(grep "Min thread computation time" "$OUT_FILE" | awk '{print $5}')
+max=$(grep "Max thread computation time" "$OUT_FILE" | awk '{print $5}')
+avg=$(grep "Avg thread computation time" "$OUT_FILE" | awk '{print $5}')
+echo "${SLURM_JOB_NUM_NODES},${SLURM_NTASKS_PER_NODE},${SLURM_CPUS_PER_TASK},$comm,$min,$max,$avg" >> mpi_scaling_results/mpi_times.csv
 
 echo "All runs completed."
