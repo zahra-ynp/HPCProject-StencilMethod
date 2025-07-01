@@ -99,6 +99,5 @@ sbatch your_script_name.sh
 - The hybrid model efficiently utilizes modern HPC resources, mapping MPI tasks to sockets and OpenMP threads to cores.
 - **Strong scaling** is effective but ultimately limited by the serial portion of the code(Amdahl's Law).
 - **Weak scaling** shows the application's capacity to solve larger problems by adding resources, with performance limited by communication cost.
-- The results highlight the trade-off between parallel computation and inter-process communication in distributed-memory applications.
 
 ---
