@@ -13,10 +13,10 @@ This project explores high-performance stencil computations—a core technique i
 HPCProject-StencilMethod/
 ├── include/               # Header files (.h) for the C implementation
 ├── src/                   # Main C source files (.c)
-├── mpi_weak_scaling/      # Scripts and outputs for MPI weak scaling
-├── mpi_scaling_results/   # Scripts and outputs for MPI strong scaling
-├── omp_scaling_results/   # Scripts and results from OpenMP scaling
-├── plot/                  # Scripts and notebooks for analysis and plotting
+├── mpi_weak_scaling/      # Outputs for MPI weak scaling
+├── mpi_scaling_results/   # Outputs for MPI strong scaling
+├── omp_scaling_results/   # Results from OpenMP scaling
+├── plot/                  # Notebooks for analysis and plotting
 ├── go_scripts/            # SLURM batch scripts for job submission
 └── README.md              # This file
 ```
