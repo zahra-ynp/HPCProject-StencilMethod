@@ -128,6 +128,15 @@ int main(int argc, char **argv)
       }
 
 
+      MPI_Barrier(myCOMM_WORLD);
+          // Only print if you are a specific rank (e.g., rank 1) to avoid clutter
+          if (Rank == 1) {
+              print_buffer(Rank, "SEND to WEST", buffers[SEND][WEST], sizey);
+          }
+          // Wait again to make sure printing is finished before continuing
+          MPI_Barrier(myCOMM_WORLD);
+      }
+
       // [B] perfoem the halo communications
       //     (1) use Send / Recv
       //     (2) use Isend / Irecv
@@ -968,3 +977,14 @@ int initialize_sources( int       Me,
   return 0;
 }
 
+void print_buffer(int rank, const char* buffer_name, double* buffer, int size) {
+    printf("Rank %d | Buffer '%s' (size %d): [", rank, buffer_name, size);
+    
+    for (int i = 0; i < size; i++) {
+        printf("%f ", buffer[i]);
+    }
+    
+    printf("]\n");
+    
+    fflush(stdout);
+}
